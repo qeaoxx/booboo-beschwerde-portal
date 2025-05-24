@@ -512,119 +512,60 @@
     </div>
 
     <script>
-        // Store submissions in memory
+        // WICHTIG: Ersetze diese URL mit deiner Apps Script URL
+        const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwykwuXOfqyTMlfb3Uru3E6ss1HzstZI9oHgCt6Hy2Ionp6-fiPxiAbmfBsKbHJYK-2/exec';
+        
+        // Store submissions in memory for quick access
         let submissions = [];
 
-        function showLoginForm() {
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('loginForm').style.display = 'block';
-        }
-
-        function showWelcomePage() {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('loginPage').style.display = 'block';
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('loginFormElement').reset();
-        }
-
-        function handleLogin() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-            
-            // Hide error message first
-            document.getElementById('errorMessage').style.display = 'none';
-            
-            if (username === 'booboo' && password === 'booboo') {
-                // Show loading screen
-                document.getElementById('loginForm').style.display = 'none';
-                document.getElementById('loadingScreen').style.display = 'block';
+        // Load submissions from Google Sheets on page load
+        async function loadSubmissions() {
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL);
+                const result = await response.json();
                 
-                // Redirect to main portal after 2 seconds
-                setTimeout(function() {
-                    document.getElementById('loadingScreen').style.display = 'none';
-                    document.getElementById('mainPortal').style.display = 'block';
-                }, 2000);
-            } else {
-                // Show error message and clear fields
-                document.getElementById('errorMessage').style.display = 'block';
-                document.getElementById('username').value = '';
-                document.getElementById('password').value = '';
-            }
-        }
-
-        function showPortal() {
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('mainPortal').style.display = 'block';
-        }
-
-        // Allow login with Enter key
-        document.addEventListener('DOMContentLoaded', function() {
-            document.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && document.getElementById('loginForm').style.display !== 'none') {
-                    handleLogin();
+                if (result.success) {
+                    submissions = result.data || [];
+                    updateSubmissionsList();
+                } else {
+                    console.error('Error loading submissions:', result.error);
                 }
-            });
-        });
-
-        document.getElementById('grievanceForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Get form data
-            const formData = new FormData(this);
-            const submission = {
-                id: Date.now(),
-                name: 'Julia',
-                category: formData.get('category'),
-                priority: formData.get('priority'),
-                grievance: formData.get('grievance'),
-                timestamp: new Date().toLocaleString('de-DE')
-            };
-            
-            // Add to submissions array
-            submissions.unshift(submission);
-            
-            // Update display
-            updateSubmissionsList();
-            
-            // Reset form
-            this.reset();
-            
-            // Show completion page
-            showCompletionPage();
-        });
-
-        function updateSubmissionsList() {
-            const listContainer = document.getElementById('submissionsList');
-            
-            // Remove submissions older than 7 days
-            const sevenDaysAgo = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
-            submissions = submissions.filter(submission => submission.submissionDate > sevenDaysAgo);
-            
-            if (submissions.length === 0) {
-                listContainer.innerHTML = '<div class="no-submissions">Noch keine Einreichungen. Sei die Erste, die ihre Gedanken teilt!</div>';
-                return;
+            } catch (error) {
+                console.error('Error connecting to Google Sheets:', error);
+                // Fallback: Load from localStorage if Google Sheets fails
+                loadFromLocalStorage();
             }
-            
-            listContainer.innerHTML = submissions.map(submission => `
-                <div class="submission-item">
-                    <div class="submission-header">
-                        <div>
-                            <strong style="color: #d63384;">${submission.name}</strong>
-                            <span style="color: #6f4e7c; margin-left: 10px;">${submission.category}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="submission-priority priority-${submission.priority}">${submission.priority === 'low' ? 'Niedrig' : submission.priority === 'medium' ? 'Mittel' : 'Hoch'}</span>
-                            <span class="submission-date">${submission.timestamp}</span>
-                        </div>
-                    </div>
-                    <div class="submission-content">
-                        <strong>Beschwerde:</strong> ${submission.grievance}
-                        <br><br>
-                        <strong>Vorgeschlagene Lösung:</strong> ${submission.solution}
-                    </div>
-                </div>
-            `).join('');
+        }
+
+        // Fallback function for localStorage
+        function loadFromLocalStorage() {
+            const stored = localStorage.getItem('submissions');
+            if (stored) {
+                submissions = JSON.parse(stored);
+                updateSubmissionsList();
+            }
+        }
+
+        // Save submission to Google Sheets
+        async function saveToGoogleSheets(submission) {
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(submission)
+                });
+                
+                const result = await response.json();
+                return result.success;
+            } catch (error) {
+                console.error('Error saving to Google Sheets:', error);
+                // Fallback: Save to localStorage
+                submissions.unshift(submission);
+                localStorage.setItem('submissions', JSON.stringify(submissions));
+                return true;
+            }
         }
 
         function submitGrievance() {
@@ -652,27 +593,69 @@
             };
             
             const submission = {
-                id: Date.now(),
+                timestamp: new Date().toLocaleString('de-DE'),
                 name: 'Julia',
                 category: categoryGerman[category] || category,
                 priority: priority,
                 grievance: grievance,
                 solution: solution || 'Keine Lösung vorgeschlagen',
-                timestamp: new Date().toLocaleString('de-DE'),
-                submissionDate: new Date().getTime() // For auto-deletion
+                submissionDate: new Date().getTime()
             };
             
-            // Add to submissions array
-            submissions.unshift(submission);
+            // Save to Google Sheets
+            saveToGoogleSheets(submission).then(success => {
+                if (success) {
+                    // Add to local array for immediate display
+                    submissions.unshift(submission);
+                    updateSubmissionsList();
+                    
+                    // Reset form
+                    form.reset();
+                    
+                    // Show submission loading screen
+                    showSubmissionLoadingScreen();
+                } else {
+                    alert('Fehler beim Speichern. Bitte versuche es erneut.');
+                }
+            });
+        }
+
+        function showLoginForm() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        function showWelcomePage() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('loginPage').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('loginFormElement').reset();
+        }
+
+        function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
             
-            // Update display
-            updateSubmissionsList();
+            // Hide error message first
+            document.getElementById('errorMessage').style.display = 'none';
             
-            // Reset form
-            form.reset();
-            
-            // Show submission loading screen
-            showSubmissionLoadingScreen();
+            if (username === 'booboo' && password === 'booboo') {
+                // Show loading screen
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('loadingScreen').style.display = 'block';
+                
+                // Load submissions and redirect to main portal after 2 seconds
+                loadSubmissions();
+                setTimeout(function() {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('mainPortal').style.display = 'block';
+                }, 2000);
+            } else {
+                // Show error message and clear fields
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            }
         }
 
         function showSubmissionLoadingScreen() {
@@ -696,27 +679,56 @@
             document.getElementById('completionPage').style.display = 'none';
             document.getElementById('submissionLoadingScreen').style.display = 'none';
             document.getElementById('mainPortal').style.display = 'block';
-            // Update submissions list to check for expired entries
-            updateSubmissionsList();
+            // Reload submissions from Google Sheets
+            loadSubmissions();
         }
 
-        function showSuccessMessage() {
-            const button = document.querySelector('.submit-btn');
-            const originalText = button.textContent;
+        function updateSubmissionsList() {
+            const listContainer = document.getElementById('submissionsList');
             
-            button.textContent = '✨ Erfolgreich Eingereicht!';
-            button.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+            // Remove submissions older than 7 days
+            const sevenDaysAgo = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
+            submissions = submissions.filter(submission => {
+                const submissionDate = submission.submissionDate || new Date(submission.timestamp).getTime();
+                return submissionDate > sevenDaysAgo;
+            });
             
-            setTimeout(() => {
-                button.textContent = 'Beschwerde Einreichen';
-                button.style.background = 'linear-gradient(135deg, #ff69b4, #ff1493)';
-            }, 2000);
+            if (submissions.length === 0) {
+                listContainer.innerHTML = '<div class="no-submissions">Noch keine Einreichungen. Sei die Erste, die ihre Gedanken teilt!</div>';
+                return;
+            }
+            
+            listContainer.innerHTML = submissions.map(submission => `
+                <div class="submission-item">
+                    <div class="submission-header">
+                        <div>
+                            <strong style="color: #d63384;">${submission.name}</strong>
+                            <span style="color: #6f4e7c; margin-left: 10px;">${submission.category}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="submission-priority priority-${submission.priority}">${submission.priority === 'low' ? 'Niedrig' : submission.priority === 'medium' ? 'Mittel' : 'Hoch'}</span>
+                            <span class="submission-date">${submission.timestamp}</span>
+                        </div>
+                    </div>
+                    <div class="submission-content">
+                        <strong>Beschwerde:</strong> ${submission.grievance}
+                        <br><br>
+                        <strong>Vorgeschlagene Lösung:</strong> ${submission.solution}
+                    </div>
+                </div>
+            `).join('');
         }
 
-        // Add some sample data for demonstration
-        setTimeout(() => {
-            // You can remove this section if you don't want sample data
-        }, 1000);
+        // Load submissions when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Don't load submissions immediately - wait for login
+            
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && document.getElementById('loginForm').style.display !== 'none') {
+                    handleLogin();
+                }
+            });
+        });
     </script>
 </body>
 </html>
