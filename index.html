@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beschwerde Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .portal-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(255, 182, 193, 0.3);
+            border: 1px solid rgba(255, 192, 203, 0.2);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading-screen {
+            text-align: center;
+            padding: 60px 40px;
+        }
+
+        .loading-title {
+            color: #d63384;
+            font-size: 2.2rem;
+            font-weight: 300;
+            margin-bottom: 20px;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .loading-subtitle {
+            color: #6f4e7c;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+            opacity: 0.8;
+            animation: slideUp 0.8s ease-out 0.2s both;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 6px solid rgba(255, 105, 180, 0.2);
+            border-top: 6px solid #ff69b4;
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            animation: rotate 1s linear infinite;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+        }
+
+        .loading-dots {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .loading-dot {
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+            box-shadow: 0 2px 8px rgba(255, 105, 180, 0.4);
+        }
+
+        .loading-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .loading-message {
+            color: #d63384;
+            font-size: 1.2rem;
+            font-weight: 600;
+            animation: slideUp 0.8s ease-out 0.4s both;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #d63384;
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(214, 51, 132, 0.1);
+        }
+
+        .header p {
+            color: #6f4e7c;
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #d63384;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        input[type="text"], 
+        input[type="email"], 
+        input[type="password"],
+        select, 
+        textarea {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #f8d7da;
+            border-radius: 15px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(248, 215, 218, 0.1);
+            color: #495057;
+        }
+
+        input[type="text"]:focus, 
+        input[type="email"]:focus, 
+        input[type="password"]:focus,
+        select:focus, 
+        textarea:focus {
+            outline: none;
+            border-color: #ff69b4;
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+
+        .priority-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .priority-option {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .priority-option input[type="radio"] {
+            display: none;
+        }
+
+        .priority-option label {
+            display: block;
+            padding: 12px 20px;
+            background: rgba(248, 215, 218, 0.3);
+            border: 2px solid #f8d7da;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+
+        .priority-option input[type="radio"]:checked + label {
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            color: white;
+            border-color: #ff69b4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 105, 180, 0.4);
+            background: linear-gradient(135deg, #ff1493, #dc143c);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submissions-list {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid rgba(255, 182, 193, 0.3);
+        }
+
+        .submission-item {
+            background: rgba(255, 182, 193, 0.1);
+            border: 1px solid rgba(255, 182, 193, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .submission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .submission-priority {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-low {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .priority-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .priority-high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .submission-date {
+            color: #6f4e7c;
+            font-size: 0.9rem;
+        }
+
+        .submission-content {
+            color: #495057;
+            line-height: 1.6;
+            margin-top: 10px;
+        }
+
+        .no-submissions {
+            text-align: center;
+            color: #6f4e7c;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .portal-container {
+                padding: 25px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .priority-options {
+                flex-direction: column;
+            }
+            
+            .priority-option {
+                min-width: unset;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="portal-container" id="loginPage">
+        <div class="header">
+            <h1>💕 booboo's Beschwerde Portal</h1>
+            <p>Wie gewünscht und erbeten, ist dies eine Plattform für dich, auf der du deine Beschwerden zur Überprüfung einreichen kannst</p>
+        </div>
+        
+        <button onclick="showLoginForm()" class="submit-btn" style="margin-top: 30px;">Einloggen</button>
+    </div>
+
+    <div class="portal-container" id="loginForm" style="display: none;">
+        <div class="header">
+            <h1>💕 Anmeldung</h1>
+            <p>Bitte gib deine Zugangsdaten ein</p>
+        </div>
+        
+        <form id="loginFormElement">
+            <div class="form-group">
+                <label for="username">Benutzername</label>
+                <input type="text" id="username" name="username" placeholder="Benutzername eingeben..." required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Passwort</label>
+                <input type="password" id="password" name="password" placeholder="Passwort eingeben..." required>
+            </div>
+
+            <div id="errorMessage" style="color: #dc3545; text-align: center; margin: 15px 0; font-weight: 600; display: none;">
+                Ungültiger Benutzername oder Passwort!
+            </div>
+
+            <button type="button" onclick="handleLogin()" class="submit-btn">Anmelden</button>
+            <button type="button" onclick="showWelcomePage()" class="submit-btn" style="background: linear-gradient(135deg, #6c757d, #495057); margin-top: 10px;">Zurück</button>
+        </form>
+    </div>
+
+    <div class="portal-container" id="loadingScreen" style="display: none;">
+        <div class="header">
+            <h1>✨ Willkommen, booboo! ✨</h1>
+            <p>Bereite dein persönliches Portal vor...</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <div class="loading-spinner"></div>
+            
+            <div class="loading-dots">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+            </div>
+            
+            <p style="color: #d63384; font-size: 1.2rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 20px;">
+                Weiterleitung... 💕
+            </p>
+        </div>
+    </div>
+
+    <div class="portal-container" id="submissionLoadingScreen" style="display: none;">
+        <div class="header">
+            <h1>✨ Beschwerde wird verarbeitet... ✨</h1>
+            <p>Deine Beschwerde wird gerade übermittelt</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <div class="loading-spinner"></div>
+            
+            <div class="loading-dots">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+            </div>
+            
+            <p style="color: #d63384; font-size: 1.2rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 20px;">
+                Wird übermittelt... 💕
+            </p>
+        </div>
+    </div>
+
+    <div class="portal-container" id="completionPage" style="display: none;">
+        <div class="header">
+            <h1>💕 Danke booboo 💕</h1>
+            <p>Deine Beschwerde wurde erfolgreich an booboo übermittelt. Er wird sich sehr bald nach der Überprüfung bei dir melden</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <div style="font-size: 4rem; margin-bottom: 20px; animation: pulse 2s ease-in-out infinite;">✅</div>
+            <p style="color: #d63384; font-size: 1.1rem; font-weight: 500; margin-bottom: 30px;">
+                Erfolgreich eingereicht!
+            </p>
+            <button onclick="returnToPortal()" class="submit-btn">Zurück zum Portal</button>
+        </div>
+    </div>
+
+    <div class="portal-container" id="mainPortal" style="display: none;">
+        <div class="header">
+            <h1>💕 Beschwerde Portal</h1>
+            <p>Teile deine Gedanken und Anliegen in einem sicheren Raum</p>
+        </div>
+
+        <form id="grievanceForm">
+            <div class="form-group">
+                <label for="category">Kategorie</label>
+                <select id="category" name="category" required>
+                    <option value="">Wähle eine Kategorie...</option>
+                    <option value="communication">Kommunikation</option>
+                    <option value="household">Haushalt</option>
+                    <option value="relationship">Beziehung</option>
+                    <option value="personal">Persönlich</option>
+                    <option value="other">Sonstiges</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Prioritätsstufe</label>
+                <div class="priority-options">
+                    <div class="priority-option">
+                        <input type="radio" id="low" name="priority" value="low" required>
+                        <label for="low">Niedrig</label>
+                    </div>
+                    <div class="priority-option">
+                        <input type="radio" id="medium" name="priority" value="medium">
+                        <label for="medium">Mittel</label>
+                    </div>
+                    <div class="priority-option">
+                        <input type="radio" id="high" name="priority" value="high">
+                        <label for="high">Hoch</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="grievance">Deine Beschwerde</label>
+                <textarea id="grievance" name="grievance" placeholder="Bitte beschreibe dein Anliegen ausführlich..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="solution">Meine vorgeschlagene Lösung</label>
+                <textarea id="solution" name="solution" placeholder="Wie könnte dieses Problem gelöst werden..."></textarea>
+            </div>
+
+            <button type="button" onclick="submitGrievance()" class="submit-btn">Beschwerde Einreichen</button>
+        </form>
+
+        <div class="submissions-list">
+            <h3 style="color: #d63384; margin-bottom: 20px; text-align: center;">📝 Vorherige Einreichungen</h3>
+            <div id="submissionsList">
+                <div class="no-submissions">Noch keine Einreichungen. Sei die Erste, die ihre Gedanken teilt!</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store submissions in memory
+        let submissions = [];
+
+        function showLoginForm() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        function showWelcomePage() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('loginPage').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('loginFormElement').reset();
+        }
+
+        function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            // Hide error message first
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            if (username === 'booboo' && password === 'booboo') {
+                // Show loading screen
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('loadingScreen').style.display = 'block';
+                
+                // Redirect to main portal after 2 seconds
+                setTimeout(function() {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('mainPortal').style.display = 'block';
+                }, 2000);
+            } else {
+                // Show error message and clear fields
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function showPortal() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('mainPortal').style.display = 'block';
+        }
+
+        // Allow login with Enter key
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && document.getElementById('loginForm').style.display !== 'none') {
+                    handleLogin();
+                }
+            });
+        });
+
+        document.getElementById('grievanceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(this);
+            const submission = {
+                id: Date.now(),
+                name: 'Julia',
+                category: formData.get('category'),
+                priority: formData.get('priority'),
+                grievance: formData.get('grievance'),
+                timestamp: new Date().toLocaleString('de-DE')
+            };
+            
+            // Add to submissions array
+            submissions.unshift(submission);
+            
+            // Update display
+            updateSubmissionsList();
+            
+            // Reset form
+            this.reset();
+            
+            // Show completion page
+            showCompletionPage();
+        });
+
+        function updateSubmissionsList() {
+            const listContainer = document.getElementById('submissionsList');
+            
+            // Remove submissions older than 7 days
+            const sevenDaysAgo = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
+            submissions = submissions.filter(submission => submission.submissionDate > sevenDaysAgo);
+            
+            if (submissions.length === 0) {
+                listContainer.innerHTML = '<div class="no-submissions">Noch keine Einreichungen. Sei die Erste, die ihre Gedanken teilt!</div>';
+                return;
+            }
+            
+            listContainer.innerHTML = submissions.map(submission => `
+                <div class="submission-item">
+                    <div class="submission-header">
+                        <div>
+                            <strong style="color: #d63384;">${submission.name}</strong>
+                            <span style="color: #6f4e7c; margin-left: 10px;">${submission.category}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="submission-priority priority-${submission.priority}">${submission.priority === 'low' ? 'Niedrig' : submission.priority === 'medium' ? 'Mittel' : 'Hoch'}</span>
+                            <span class="submission-date">${submission.timestamp}</span>
+                        </div>
+                    </div>
+                    <div class="submission-content">
+                        <strong>Beschwerde:</strong> ${submission.grievance}
+                        <br><br>
+                        <strong>Vorgeschlagene Lösung:</strong> ${submission.solution}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function submitGrievance() {
+            const form = document.getElementById('grievanceForm');
+            const formData = new FormData(form);
+            
+            // Validate required fields
+            const category = formData.get('category');
+            const priority = formData.get('priority');
+            const grievance = formData.get('grievance');
+            const solution = formData.get('solution');
+            
+            if (!category || !priority || !grievance) {
+                alert('Bitte fülle alle Felder aus!');
+                return;
+            }
+            
+            // Convert category to German for display
+            const categoryGerman = {
+                'communication': 'Kommunikation',
+                'household': 'Haushalt',
+                'relationship': 'Beziehung',
+                'personal': 'Persönlich',
+                'other': 'Sonstiges'
+            };
+            
+            const submission = {
+                id: Date.now(),
+                name: 'Julia',
+                category: categoryGerman[category] || category,
+                priority: priority,
+                grievance: grievance,
+                solution: solution || 'Keine Lösung vorgeschlagen',
+                timestamp: new Date().toLocaleString('de-DE'),
+                submissionDate: new Date().getTime() // For auto-deletion
+            };
+            
+            // Add to submissions array
+            submissions.unshift(submission);
+            
+            // Update display
+            updateSubmissionsList();
+            
+            // Reset form
+            form.reset();
+            
+            // Show submission loading screen
+            showSubmissionLoadingScreen();
+        }
+
+        function showSubmissionLoadingScreen() {
+            document.getElementById('mainPortal').style.display = 'none';
+            document.getElementById('submissionLoadingScreen').style.display = 'block';
+            
+            // Redirect to completion page after 2 seconds
+            setTimeout(function() {
+                document.getElementById('submissionLoadingScreen').style.display = 'none';
+                document.getElementById('completionPage').style.display = 'block';
+            }, 2000);
+        }
+
+        function showCompletionPage() {
+            document.getElementById('mainPortal').style.display = 'none';
+            document.getElementById('submissionLoadingScreen').style.display = 'none';
+            document.getElementById('completionPage').style.display = 'block';
+        }
+
+        function returnToPortal() {
+            document.getElementById('completionPage').style.display = 'none';
+            document.getElementById('submissionLoadingScreen').style.display = 'none';
+            document.getElementById('mainPortal').style.display = 'block';
+            // Update submissions list to check for expired entries
+            updateSubmissionsList();
+        }
+
+        function showSuccessMessage() {
+            const button = document.querySelector('.submit-btn');
+            const originalText = button.textContent;
+            
+            button.textContent = '✨ Erfolgreich Eingereicht!';
+            button.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+            
+            setTimeout(() => {
+                button.textContent = 'Beschwerde Einreichen';
+                button.style.background = 'linear-gradient(135deg, #ff69b4, #ff1493)';
+            }, 2000);
+        }
+
+        // Add some sample data for demonstration
+        setTimeout(() => {
+            // You can remove this section if you don't want sample data
+        }, 1000);
+    </script>
+</body>
+</html>
