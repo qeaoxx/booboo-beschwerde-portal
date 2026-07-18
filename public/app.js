@@ -4,6 +4,8 @@ const adminView = document.querySelector('#admin-view');
 const form = document.querySelector('#complaint-form');
 const formMessage = document.querySelector('#form-message');
 const submitButton = document.querySelector('#submit-button');
+const photosInput = document.querySelector('#photos');
+const photoCount = document.querySelector('#photo-count');
 let selectedMood = '😤';
 let adminPassword = sessionStorage.getItem('boobooAdminPassword') || '';
 
@@ -23,13 +25,22 @@ document.querySelectorAll('.mood').forEach((button) => button.addEventListener('
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault(); formMessage.textContent = ''; submitButton.disabled = true; submitButton.innerHTML = 'Wird gesendet…';
-  const data = Object.fromEntries(new FormData(form)); data.mood = selectedMood;
+  const data = new FormData(form); data.set('mood', selectedMood);
+  if (photosInput.files.length > 5) { formMessage.textContent = 'Bitte wähle höchstens 5 Fotos aus.'; submitButton.disabled = false; submitButton.innerHTML = 'Beschwerde senden <span>→</span>'; return; }
+  const selectedPhotos = [...photosInput.files];
+  if (selectedPhotos.some((photo) => photo.size > 25 * 1024 * 1024)) { formMessage.textContent = 'Ein Foto ist größer als 25 MB. Bitte wähle ein kleineres aus.'; submitButton.disabled = false; submitButton.innerHTML = 'Beschwerde senden <span>→</span>'; return; }
+  if (selectedPhotos.reduce((total, photo) => total + photo.size, 0) > 80 * 1024 * 1024) { formMessage.textContent = 'Die Fotos dürfen zusammen höchstens 80 MB groß sein.'; submitButton.disabled = false; submitButton.innerHTML = 'Beschwerde senden <span>→</span>'; return; }
   try {
-    const response = await fetch('/api/complaints', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const response = await fetch('/api/complaints', { method: 'POST', body: data });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Bitte versuche es noch einmal.');
-    form.reset(); selectedMood = '😤'; document.querySelectorAll('.mood').forEach((item, index) => item.classList.toggle('is-selected', index === 0)); show(successView);
+    form.reset(); photoCount.textContent = 'JPG, PNG oder WebP · bis 25 MB je Foto · 80 MB zusammen'; selectedMood = '😤'; document.querySelectorAll('.mood').forEach((item, index) => item.classList.toggle('is-selected', index === 0)); show(successView);
   } catch (error) { formMessage.textContent = error.message; } finally { submitButton.disabled = false; submitButton.innerHTML = 'Beschwerde senden <span>→</span>'; }
+});
+
+photosInput.addEventListener('change', () => {
+  const count = photosInput.files.length;
+  photoCount.textContent = count ? `${count} Foto${count === 1 ? '' : 's'} ausgewählt` : 'JPG, PNG oder WebP · bis 25 MB je Foto · 80 MB zusammen';
 });
 
 document.querySelector('#new-complaint').addEventListener('click', () => show(complaintView));
@@ -39,7 +50,10 @@ document.querySelector('#back-home').addEventListener('click', () => { history.r
 function makeCard(item) {
   const card = document.createElement('article'); card.className = 'complaint-card';
   const escape = (text) => String(text).replace(/[&<>'"]/g, (char) => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[char]));
-  card.innerHTML = `<div class="complaint-top"><div class="complaint-mood">${escape(item.mood)}</div><div><h3 class="complaint-title">${escape(item.title)}</h3><div class="meta">${escape(item.category)} · ${formatDate(item.createdAt)}</div></div></div><p>${escape(item.details)}</p><div class="actions"><button class="status-button ${item.status === 'new' ? 'active' : ''}" data-status="new">Neu</button><button class="status-button ${item.status === 'heard' ? 'active' : ''}" data-status="heard">Gehört</button><button class="status-button ${item.status === 'resolved' ? 'active' : ''}" data-status="resolved">Erledigt</button><button class="delete-button">Löschen</button></div>`;
+  const priorities = { low: 'Entspannt', normal: 'Normal', high: 'Wichtig', urgent: 'Dringend' };
+  const priority = item.priority ? `<span class="priority priority-${escape(item.priority)}">${escape(priorities[item.priority] || item.priority)}</span>` : '';
+  const photos = (item.photos || []).map((photo) => `<a class="photo-link" href="/api/photos/${encodeURIComponent(photo.id)}" target="_blank" rel="noopener"><img src="/api/photos/${encodeURIComponent(photo.id)}" alt="${escape(photo.filename || 'Angehängtes Foto')}" loading="lazy" /></a>`).join('');
+  card.innerHTML = `<div class="complaint-top"><div class="complaint-mood">${escape(item.mood)}</div><div><h3 class="complaint-title">${escape(item.title)}</h3><div class="meta">${escape(item.category)} · ${formatDate(item.createdAt)} ${priority}</div></div></div><p>${escape(item.details)}</p>${photos ? `<div class="photo-grid">${photos}</div>` : ''}<div class="actions"><button class="status-button ${item.status === 'new' ? 'active' : ''}" data-status="new">Neu</button><button class="status-button ${item.status === 'heard' ? 'active' : ''}" data-status="heard">Gehört</button><button class="status-button ${item.status === 'resolved' ? 'active' : ''}" data-status="resolved">Erledigt</button><button class="delete-button">Löschen</button></div>`;
   card.querySelectorAll('.status-button').forEach((button) => button.addEventListener('click', () => updateComplaint(item.id, button.dataset.status)));
   card.querySelector('.delete-button').addEventListener('click', () => { if (confirm('Diese Beschwerde endgültig löschen?')) deleteComplaint(item.id); });
   return card;
