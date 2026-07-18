@@ -1,0 +1,12 @@
+{
+  "name": "booboo-beschwerde-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A tiny private complaint portal for Booboo.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
