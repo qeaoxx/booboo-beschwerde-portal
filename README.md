@@ -18,7 +18,7 @@ wrangler pages secret put BOOBOO_ADMIN_PASSWORD --project-name booboo-portal
 
 ## Kostenloses Hosting mit Cloudflare Pages und D1
 
-Das Projekt läuft auf Cloudflare Pages Functions und der kostenlosen D1-Datenbank. Fotos liegen ebenfalls privat in D1; es ist kein R2- oder Zahlungsabo erforderlich. Pro Beschwerde gelten maximal fünf Fotos, 25 MB pro Foto und 80 MB insgesamt.
+Das Projekt läuft auf Cloudflare Pages Functions und der kostenlosen D1-Datenbank. Fotos liegen ebenfalls privat in D1; es ist kein R2- oder Zahlungsabo erforderlich. Pro Beschwerde gelten maximal fünf Fotos (JPG, PNG, WebP oder iPhone-HEIC), 25 MB pro Foto und 80 MB insgesamt.
 
 1. `wrangler d1 create booboo-beschwerde-portal-db`
 2. Die ausgegebene Datenbank-ID in `wrangler.toml` eintragen.
