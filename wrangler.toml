@@ -6,3 +6,7 @@ compatibility_date = "2026-07-18"
 binding = "DB"
 database_name = "booboo-beschwerde-portal-db"
 database_id = "e7e94403-02c0-445e-8f8f-94aed77ad0f4"
+
+[[kv_namespaces]]
+binding = "PHOTOS"
+id = "f50827b6638d46b58ac2c0e205c23a5e"
