@@ -69,17 +69,22 @@ export async function onRequestPost({ request, env }) {
     'INSERT INTO complaints (id, title, details, category, mood, status, priority, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(complaint.id, complaint.title, complaint.details, complaint.category, complaint.mood, complaint.status, complaint.priority, complaint.createdAt).run();
 
+  const uploadedKeys = [];
   try {
     for (const photo of photos) {
       const id = crypto.randomUUID();
+      const key = `complaints/${complaint.id}/${id}`;
       const item = { id, filename: cleanFilename(photo.name), contentType: photo.type, size: photo.size };
+      await env.PHOTOS.put(key, photo.stream());
+      uploadedKeys.push(key);
       await env.DB.prepare(
-        'INSERT INTO complaint_photos (id, complaint_id, filename, content_type, size, data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).bind(item.id, complaint.id, item.filename, item.contentType, item.size, await photo.arrayBuffer(), complaint.createdAt).run();
+        'INSERT INTO complaint_photos (id, complaint_id, filename, content_type, size, data, storage_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).bind(item.id, complaint.id, item.filename, item.contentType, item.size, new Uint8Array(0), key, complaint.createdAt).run();
       complaint.photos.push(item);
     }
     return json({ complaint }, 201);
   } catch (error) {
+    await Promise.all(uploadedKeys.map((key) => env.PHOTOS.delete(key)));
     await env.DB.batch([
       env.DB.prepare('DELETE FROM complaint_photos WHERE complaint_id = ?').bind(complaint.id),
       env.DB.prepare('DELETE FROM complaints WHERE id = ?').bind(complaint.id),
