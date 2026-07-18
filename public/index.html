@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7a2c4" />
+    <title>Booboo Beschwerde Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,500;9..40,600;9..40,700&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section id="complaint-view" class="panel complaint-panel">
+        <div class="sparkle sparkle-one">✦</div><div class="sparkle sparkle-two">✦</div>
+        <div class="eyebrow"><span></span> Wir hören offiziell zu <span></span></div>
+        <p class="kicker">Für den wichtigsten Menschen</p>
+        <h1>Booboo<br /><em>Beschwerde Portal.</em></h1>
+        <p class="intro">Ein sehr ernster Ort für absolut berechtigte Gefühle. Deine Beschwerde wird mit Liebe, Fürsorge und dem angemessenen Maß an Reue entgegengenommen.</p>
+
+        <form id="complaint-form">
+          <div class="mood-row" aria-label="Wie fühlst du dich?">
+            <button class="mood is-selected" type="button" data-mood="😤" aria-label="Genervt">😤</button>
+            <button class="mood" type="button" data-mood="🥺" aria-label="Traurig">🥺</button>
+            <button class="mood" type="button" data-mood="🙄" aria-label="Unbeeindruckt">🙄</button>
+            <button class="mood" type="button" data-mood="😡" aria-label="Wütend">😡</button>
+            <button class="mood" type="button" data-mood="💗" aria-label="Braucht Liebe">💗</button>
+          </div>
+          <div class="field-grid">
+            <label>Worum geht es?
+              <input id="title" name="title" maxlength="90" placeholder="z. B. Er hat die letzte Pommes gegessen" required />
+            </label>
+            <label>Kategorie
+              <select id="category" name="category"><option>Essen &amp; Trinken</option><option>Zu spät kommen</option><option>Nachrichten &amp; Antworten</option><option>Aufmerksamkeit &amp; Zuneigung</option><option>Date-Night-Vergehen</option><option>Haushalt &amp; Ordnung</option><option>Vergessene Versprechen</option><option>Unnötige Diskussion</option><option>Unangebrachtes Verhalten</option><option>Geschenk- oder Blumenmangel</option><option>Andere sehr ernste Angelegenheit</option></select>
+            </label>
+          </div>
+          <label class="details">Erzähl ihm alles
+            <textarea id="details" name="details" maxlength="2500" placeholder="Beschreibe den gesamten Fall. Beweise sind ausdrücklich erwünscht." required></textarea>
+          </label>
+          <div class="form-bottom"><p class="tiny">Deine Gefühle sind zu 100 % berechtigt.</p><button id="submit-button" class="primary" type="submit">Beschwerde senden <span>→</span></button></div>
+          <p id="form-message" class="form-message" role="status"></p>
+        </form>
+        <button id="admin-link" class="quiet-link" type="button">Privates Dashboard</button>
+      </section>
+
+      <section id="success-view" class="panel success-panel hidden" aria-live="polite">
+        <div class="heart">♥</div><p class="kicker">Beschwerde erfasst</p><h2>Nachricht erhalten,<br /><em>mein Schatz.</em></h2><p>Sie ist jetzt offiziell aktenkundig. Eine durchdachte Antwort, eine aufrichtige Entschuldigung und vielleicht Snacks sind unterwegs.</p><button id="new-complaint" class="primary" type="button">Noch eine hinzufügen <span>+</span></button>
+      </section>
+
+      <section id="admin-view" class="panel admin-panel hidden">
+        <div class="admin-heading"><div><p class="kicker">Privater Bereich</p><h2>Der <em>Beschwerde</em> Schalter</h2></div><button id="back-home" class="pill" type="button">← Zurück</button></div>
+        <form id="login-form" class="login-card"><label>Dashboard-Passwort<input id="password" type="password" autocomplete="current-password" placeholder="Passwort eingeben" required /></label><button class="primary" type="submit">Dashboard öffnen <span>→</span></button><p id="login-message" class="form-message" role="status"></p></form>
+        <div id="dashboard" class="hidden"><div id="stats" class="stats"></div><div id="complaint-list" class="complaint-list"></div></div>
+      </section>
+    </main>
+    <footer>Gemacht mit <span>♥</span> und dem festen Vorsatz, es besser zu machen.</footer>
+    <script src="app.js"></script>
+  </body>
+</html>
