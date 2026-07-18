@@ -19,6 +19,7 @@ function complaintFromRow(row) {
     category: row.category,
     mood: row.mood,
     status: row.status,
+    priority: row.priority,
     createdAt: row.created_at,
   };
 }
@@ -31,14 +32,18 @@ export async function onRequestPatch({ request, env, params }) {
   const result = await env.DB.prepare('UPDATE complaints SET status = ? WHERE id = ?').bind(body.status, params.id).run();
   if (!result.meta.changes) return json({ error: 'Beschwerde nicht gefunden.' }, 404);
   const row = await env.DB.prepare(
-    'SELECT id, title, details, category, mood, status, created_at FROM complaints WHERE id = ?'
+    'SELECT id, title, details, category, mood, status, priority, created_at FROM complaints WHERE id = ?'
   ).bind(params.id).first();
   return json({ complaint: complaintFromRow(row) });
 }
 
 export async function onRequestDelete({ request, env, params }) {
   if (!isAdmin(request, env)) return json({ error: 'Passwort erforderlich.' }, 401);
-  const result = await env.DB.prepare('DELETE FROM complaints WHERE id = ?').bind(params.id).run();
-  if (!result.meta.changes) return json({ error: 'Beschwerde nicht gefunden.' }, 404);
+  const existing = await env.DB.prepare('SELECT id FROM complaints WHERE id = ?').bind(params.id).first();
+  if (!existing) return json({ error: 'Beschwerde nicht gefunden.' }, 404);
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM complaint_photos WHERE complaint_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM complaints WHERE id = ?').bind(params.id),
+  ]);
   return json({ ok: true });
 }
