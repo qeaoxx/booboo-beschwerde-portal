@@ -3,3 +3,4 @@ data/complaints.json
 .env
 .DS_Store
 AGENTS.md
+.wrangler/
