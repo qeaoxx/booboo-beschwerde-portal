@@ -34,13 +34,13 @@ form.addEventListener('submit', async (event) => {
     const response = await fetch('/api/complaints', { method: 'POST', body: data });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Bitte versuche es noch einmal.');
-    form.reset(); photoCount.textContent = 'JPG, PNG oder WebP · bis 25 MB je Foto · 80 MB zusammen'; selectedMood = '😤'; document.querySelectorAll('.mood').forEach((item, index) => item.classList.toggle('is-selected', index === 0)); show(successView);
+    form.reset(); photoCount.textContent = 'JPG, PNG, WebP oder HEIC · bis 25 MB je Foto · 80 MB zusammen'; selectedMood = '😤'; document.querySelectorAll('.mood').forEach((item, index) => item.classList.toggle('is-selected', index === 0)); show(successView);
   } catch (error) { formMessage.textContent = error.message; } finally { submitButton.disabled = false; submitButton.innerHTML = 'Beschwerde senden <span>→</span>'; }
 });
 
 photosInput.addEventListener('change', () => {
   const count = photosInput.files.length;
-  photoCount.textContent = count ? `${count} Foto${count === 1 ? '' : 's'} ausgewählt` : 'JPG, PNG oder WebP · bis 25 MB je Foto · 80 MB zusammen';
+  photoCount.textContent = count ? `${count} Foto${count === 1 ? '' : 's'} ausgewählt` : 'JPG, PNG, WebP oder HEIC · bis 25 MB je Foto · 80 MB zusammen';
 });
 
 document.querySelector('#new-complaint').addEventListener('click', () => show(complaintView));
