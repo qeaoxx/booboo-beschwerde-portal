@@ -32,10 +32,10 @@ function readBody(request) {
     let body = '';
     request.on('data', (chunk) => {
       body += chunk;
-      if (body.length > 100000) reject(new Error('Request body is too large.'));
+      if (body.length > 100000) reject(new Error('Anfrage ist zu groß.'));
     });
     request.on('end', () => {
-      try { resolve(body ? JSON.parse(body) : {}); } catch { reject(new Error('Invalid JSON.')); }
+      try { resolve(body ? JSON.parse(body) : {}); } catch { reject(new Error('Ungültige Anfrage.')); }
     });
   });
 }
@@ -52,10 +52,10 @@ function serveFile(requestPath, response) {
   const requested = requestPath === '/' ? '/index.html' : requestPath;
   const safePath = path.normalize(requested).replace(/^([.][.][/\\])+/, '');
   const filePath = path.join(publicDir, safePath);
-  if (!filePath.startsWith(publicDir)) return send(response, 403, { error: 'Forbidden' });
+  if (!filePath.startsWith(publicDir)) return send(response, 403, { error: 'Zugriff verweigert.' });
   const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
   fs.readFile(filePath, (error, content) => {
-    if (error) return send(response, 404, 'Not found', 'text/plain; charset=utf-8');
+    if (error) return send(response, 404, 'Nicht gefunden', 'text/plain; charset=utf-8');
     send(response, 200, content.toString(), types[path.extname(filePath)] || 'application/octet-stream');
   });
 }
@@ -68,7 +68,7 @@ const server = http.createServer(async (request, response) => {
       const body = await readBody(request);
       const title = cleanText(body.title, 90);
       const details = cleanText(body.details, 2500);
-      const category = cleanText(body.category, 40) || 'Other';
+      const category = cleanText(body.category, 40) || 'Andere Angelegenheit';
       const mood = cleanText(body.mood, 12) || '😤';
       if (!title || !details) return send(response, 400, { error: 'Bitte ergänze einen Titel und ein paar Details.' });
       const complaints = readComplaints();
@@ -106,10 +106,10 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'GET') return serveFile(url.pathname, response);
-    return send(response, 405, { error: 'Method not allowed.' });
+    return send(response, 405, { error: 'Methode nicht erlaubt.' });
   } catch (error) {
     console.error(error);
-    return send(response, 500, { error: 'Something went wrong. Please try again.' });
+    return send(response, 500, { error: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.' });
   }
 });
 
