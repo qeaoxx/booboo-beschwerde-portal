@@ -1,0 +1,14 @@
+name = "booboo-beschwerde-portal"
+main = "src/worker.js"
+compatibility_date = "2026-07-18"
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "booboo-beschwerde-portal-db"
+database_id = "e7e94403-02c0-445e-8f8f-94aed77ad0f4"
+migrations_dir = "migrations"
