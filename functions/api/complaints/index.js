@@ -27,7 +27,7 @@ function complaintFromRow(row) {
 }
 
 const ALLOWED_PRIORITIES = new Set(['low', 'normal', 'high', 'urgent']);
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_PHOTO_BYTES = 80 * 1024 * 1024;
@@ -58,7 +58,7 @@ export async function onRequestPost({ request, env }) {
   const photos = body.getAll('photos').filter((item) => typeof item !== 'string' && item.size > 0);
   if (!title || !details) return json({ error: 'Bitte ergänze einen Titel und ein paar Details.' }, 400);
   if (photos.length > MAX_PHOTOS) return json({ error: `Bitte sende höchstens ${MAX_PHOTOS} Fotos auf einmal.` }, 400);
-  if (photos.some((photo) => !ALLOWED_IMAGE_TYPES.has(photo.type) || photo.size > MAX_PHOTO_BYTES)) return json({ error: 'Bitte verwende JPG, PNG oder WebP mit höchstens 25 MB pro Foto.' }, 400);
+  if (photos.some((photo) => !ALLOWED_IMAGE_TYPES.has(photo.type) || photo.size > MAX_PHOTO_BYTES)) return json({ error: 'Bitte verwende JPG, PNG, WebP oder HEIC mit höchstens 25 MB pro Foto.' }, 400);
   if (photos.reduce((total, photo) => total + photo.size, 0) > MAX_TOTAL_PHOTO_BYTES) return json({ error: 'Die Fotos sind zusammen zu groß. Bitte wähle insgesamt höchstens 80 MB aus.' }, 400);
 
   const complaint = {
