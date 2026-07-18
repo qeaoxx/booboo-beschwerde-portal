@@ -2,6 +2,10 @@
 
 Ein kleines, privates, rosafarbenes Beschwerde-Portal auf Deutsch. Beschwerden werden im geschützten Dashboard eingesehen und bearbeitet.
 
+## Live
+
+[booboo-portal.pages.dev](https://booboo-portal.pages.dev)
+
 ## Lokal starten
 
 1. [Node.js 18+](https://nodejs.org/) installieren.
@@ -16,14 +20,6 @@ Ein kleines, privates, rosafarbenes Beschwerde-Portal auf Deutsch. Beschwerden w
 BOOBOO_ADMIN_PASSWORD="your-strong-password" npm start
 ```
 
-## Kostenloses Hosting mit Cloudflare
+## Kostenloses Hosting mit Cloudflare Pages
 
-Das Projekt ist für Cloudflare Workers und die kostenlose D1-Datenbank vorbereitet. Vor dem ersten Deployment:
-
-1. `wrangler d1 create booboo-beschwerde-portal-db`
-2. Die ausgegebene Datenbank-ID in `wrangler.toml` eintragen.
-3. `wrangler d1 migrations apply booboo-beschwerde-portal-db --remote`
-4. `wrangler secret put BOOBOO_ADMIN_PASSWORD`
-5. `wrangler deploy`
-
-Die Zugangsdaten gehören nie in das Repository.
+Das Projekt nutzt Cloudflare Pages Functions sowie die kostenlose D1-Datenbank. Das Dashboard-Passwort wird ausschließlich als Cloudflare-Secrets gespeichert und gehört nie in dieses Repository.
