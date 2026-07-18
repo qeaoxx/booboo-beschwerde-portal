@@ -34,9 +34,16 @@
             <label>Kategorie
               <select id="category" name="category"><option>Essen &amp; Trinken</option><option>Zu spät kommen</option><option>Nachrichten &amp; Antworten</option><option>Aufmerksamkeit &amp; Zuneigung</option><option>Date-Night-Vergehen</option><option>Haushalt &amp; Ordnung</option><option>Vergessene Versprechen</option><option>Unnötige Diskussion</option><option>Unangebrachtes Verhalten</option><option>Geschenk- oder Blumenmangel</option><option>Andere sehr ernste Angelegenheit</option></select>
             </label>
+            <label>Priorität <span class="optional">optional</span>
+              <select id="priority" name="priority"><option value="">Keine Angabe</option><option value="low">Entspannt</option><option value="normal">Normal</option><option value="high">Wichtig</option><option value="urgent">Dringend</option></select>
+            </label>
           </div>
           <label class="details">Erzähl ihm alles
             <textarea id="details" name="details" maxlength="2500" placeholder="Beschreibe den gesamten Fall. Beweise sind ausdrücklich erwünscht." required></textarea>
+          </label>
+          <label class="upload-field">Fotos hinzufügen <span class="optional">optional · bis zu 5</span>
+            <input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+            <span id="photo-count" class="upload-hint">JPG, PNG oder WebP · bis 25 MB je Foto · 80 MB zusammen</span>
           </label>
           <div class="form-bottom"><p class="tiny">Deine Gefühle sind zu 100 % berechtigt.</p><button id="submit-button" class="primary" type="submit">Beschwerde senden <span>→</span></button></div>
           <p id="form-message" class="form-message" role="status"></p>
