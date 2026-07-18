@@ -1,26 +1,30 @@
 # Booboo Beschwerde Portal
 
-Ein kleines, privates, rosafarbenes Beschwerde-Portal auf Deutsch. Das Portal ist bereits vor dem Betreten geschützt und Beschwerden werden dauerhaft im geschützten Dashboard gespeichert.
-
-## Live
-
-[booboo-portal.pages.dev](https://booboo-portal.pages.dev)
-
-## Zugang
-
-Das Portal besitzt zwei getrennte Zugangsebenen:
-
-- Der Portal-Zugangscode schützt die gesamte Website vor fremden Besuchern und Spam.
-- Das Dashboard-Passwort schützt zusätzlich die Beschwerdeverwaltung.
-
-Beide Geheimnisse liegen ausschließlich als Cloudflare-Secrets vor und nie im Repository.
+Ein kleines, privates, rosafarbenes Beschwerde-Portal auf Deutsch. Beschwerden, Prioritäten und bis zu fünf Fotos werden dauerhaft im geschützten Dashboard gespeichert.
 
 ## Lokal starten
 
 1. [Node.js 18+](https://nodejs.org/) installieren.
-2. In diesem Ordner `npm start` ausführen.
-3. `http://localhost:3000` öffnen.
+2. Wrangler anmelden und in diesem Ordner `npm run dev` ausführen.
+3. Die angezeigte lokale Adresse öffnen.
 
-## Kostenloses Hosting mit Cloudflare Pages
+## Privates Dashboard
 
-Das Projekt nutzt Cloudflare Pages Functions und eine D1-Datenbank. Die Datenbank ist unabhängig von Deployments und speichert Beschwerden dauerhaft.
+Im Portal `#admin` öffnen und das Dashboard-Passwort eingeben. Das Passwort wird serverseitig als Cloudflare-Secrets festgelegt.
+
+```bash
+wrangler pages secret put BOOBOO_ADMIN_PASSWORD --project-name booboo-portal
+```
+
+## Kostenloses Hosting mit Cloudflare Pages und D1
+
+Das Projekt läuft auf Cloudflare Pages Functions und der kostenlosen D1-Datenbank. Fotos liegen ebenfalls privat in D1; es ist kein R2- oder Zahlungsabo erforderlich. Pro Beschwerde gelten maximal fünf Fotos, 25 MB pro Foto und 80 MB insgesamt.
+
+1. `wrangler d1 create booboo-beschwerde-portal-db`
+2. Die ausgegebene Datenbank-ID in `wrangler.toml` eintragen.
+3. `wrangler d1 migrations apply booboo-beschwerde-portal-db --remote`
+4. `wrangler pages secret put BOOBOO_PORTAL_PASSWORD --project-name booboo-portal`
+5. `wrangler pages secret put BOOBOO_ADMIN_PASSWORD --project-name booboo-portal`
+6. `wrangler pages deploy public --project-name booboo-portal --branch main`
+
+Die Zugangsdaten gehören nie in das Repository.
