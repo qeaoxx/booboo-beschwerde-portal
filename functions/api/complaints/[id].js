@@ -39,8 +39,10 @@ export async function onRequestPatch({ request, env, params }) {
 
 export async function onRequestDelete({ request, env, params }) {
   if (!isAdmin(request, env)) return json({ error: 'Passwort erforderlich.' }, 401);
+  const { results: photos } = await env.DB.prepare('SELECT storage_key FROM complaint_photos WHERE complaint_id = ?').bind(params.id).all();
   const existing = await env.DB.prepare('SELECT id FROM complaints WHERE id = ?').bind(params.id).first();
   if (!existing) return json({ error: 'Beschwerde nicht gefunden.' }, 404);
+  await Promise.all(photos.filter((photo) => photo.storage_key).map((photo) => env.PHOTOS.delete(photo.storage_key)));
   await env.DB.batch([
     env.DB.prepare('DELETE FROM complaint_photos WHERE complaint_id = ?').bind(params.id),
     env.DB.prepare('DELETE FROM complaints WHERE id = ?').bind(params.id),
