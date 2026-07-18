@@ -4,8 +4,8 @@
   "private": true,
   "description": "Ein kleines, privates Beschwerdeportal für Booboo.",
   "scripts": {
-    "start": "node server.js",
-    "deploy": "wrangler deploy"
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public --project-name booboo-portal --branch main"
   },
   "engines": {
     "node": ">=18"
