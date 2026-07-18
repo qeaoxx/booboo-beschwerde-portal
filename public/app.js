@@ -22,7 +22,7 @@ document.querySelectorAll('.mood').forEach((button) => button.addEventListener('
 }));
 
 form.addEventListener('submit', async (event) => {
-  event.preventDefault(); formMessage.textContent = ''; submitButton.disabled = true; submitButton.innerHTML = 'Sending…';
+  event.preventDefault(); formMessage.textContent = ''; submitButton.disabled = true; submitButton.innerHTML = 'Wird gesendet…';
   const data = Object.fromEntries(new FormData(form)); data.mood = selectedMood;
   try {
     const response = await fetch('/api/complaints', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
