@@ -1,0 +1,15 @@
+name = "booboo-telegram-notifier"
+main = "src/index.js"
+compatibility_date = "2026-07-22"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "booboo-beschwerde-portal-db"
+database_id = "e7e94403-02c0-445e-8f8f-94aed77ad0f4"
+
+[[queues.consumers]]
+queue = "booboo-telegram-notifications"
+max_batch_size = 1
+max_batch_timeout = 1
+max_retries = 100
+retry_delay = 60
