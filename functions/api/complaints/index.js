@@ -45,8 +45,8 @@ function photosFor(photos, complaintId) {
   }));
 }
 
-export async function onRequestPost({ request, env }) {
-  const body = await request.formData().catch(() => null);
+export async function onRequestPost(context) {
+  const body = await context.request.formData().catch(() => null);
   if (!body) return json({ error: 'Ungültige Anfrage.' }, 400);
 
   const title = cleanText(body.get('title'), 90);
@@ -65,7 +65,7 @@ export async function onRequestPost({ request, env }) {
     id: crypto.randomUUID(), title, details, category, mood,
     status: 'new', priority, createdAt: new Date().toISOString(), photos: [],
   };
-  await env.DB.prepare(
+  await context.env.DB.prepare(
     'INSERT INTO complaints (id, title, details, category, mood, status, priority, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(complaint.id, complaint.title, complaint.details, complaint.category, complaint.mood, complaint.status, complaint.priority, complaint.createdAt).run();
 
@@ -75,19 +75,31 @@ export async function onRequestPost({ request, env }) {
       const id = crypto.randomUUID();
       const key = `complaints/${complaint.id}/${id}`;
       const item = { id, filename: cleanFilename(photo.name), contentType: photo.type, size: photo.size };
-      await env.PHOTOS.put(key, photo.stream());
+      await context.env.PHOTOS.put(key, photo.stream());
       uploadedKeys.push(key);
-      await env.DB.prepare(
+      await context.env.DB.prepare(
         'INSERT INTO complaint_photos (id, complaint_id, filename, content_type, size, data, storage_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
       ).bind(item.id, complaint.id, item.filename, item.contentType, item.size, new Uint8Array(0), key, complaint.createdAt).run();
       complaint.photos.push(item);
     }
+    const notificationId = crypto.randomUUID();
+    await context.env.DB.prepare(
+      'INSERT INTO notification_deliveries (id, complaint_id, status, created_at) VALUES (?, ?, ?, ?)'
+    ).bind(notificationId, complaint.id, 'pending', complaint.createdAt).run();
+    await context.env.TELEGRAM_NOTIFICATIONS.send({
+      notificationId,
+      complaintId: complaint.id,
+      title: complaint.title,
+      category: complaint.category,
+      priority: complaint.priority,
+    });
     return json({ complaint }, 201);
   } catch (error) {
-    await Promise.all(uploadedKeys.map((key) => env.PHOTOS.delete(key)));
-    await env.DB.batch([
-      env.DB.prepare('DELETE FROM complaint_photos WHERE complaint_id = ?').bind(complaint.id),
-      env.DB.prepare('DELETE FROM complaints WHERE id = ?').bind(complaint.id),
+    await Promise.all(uploadedKeys.map((key) => context.env.PHOTOS.delete(key)));
+    await context.env.DB.batch([
+      context.env.DB.prepare('DELETE FROM notification_deliveries WHERE complaint_id = ?').bind(complaint.id),
+      context.env.DB.prepare('DELETE FROM complaint_photos WHERE complaint_id = ?').bind(complaint.id),
+      context.env.DB.prepare('DELETE FROM complaints WHERE id = ?').bind(complaint.id),
     ]);
     console.error(error);
     return json({ error: 'Die Fotos konnten nicht gespeichert werden. Bitte versuche es erneut.' }, 500);
