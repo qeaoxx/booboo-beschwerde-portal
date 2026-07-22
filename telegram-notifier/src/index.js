@@ -117,7 +117,7 @@ export default {
           ).bind(String(error?.message || 'Telegram delivery failed.').slice(0, 500), notificationId, 'pending').run();
         }
         console.error(JSON.stringify({ event: 'telegram_notification_failed', notificationId, error: String(error?.message || error) }));
-        message.retry({ delaySeconds: 60 });
+        message.retry({ delaySeconds: 600 });
       }
     }
   },
