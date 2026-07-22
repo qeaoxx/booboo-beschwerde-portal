@@ -12,4 +12,5 @@ queue = "booboo-telegram-notifications"
 max_batch_size = 1
 max_batch_timeout = 1
 max_retries = 100
-retry_delay = 60
+retry_delay = 600
+dead_letter_queue = "booboo-telegram-notifications-failed"
