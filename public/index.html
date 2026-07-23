@@ -100,7 +100,7 @@
 
     <dialog id="edit-dialog" class="modal">
       <form id="edit-form" method="dialog">
-        <div class="modal-heading"><h3>Beschwerde bearbeiten</h3><button class="icon-button" value="cancel" aria-label="Dialog schließen">×</button></div>
+        <div class="modal-heading"><h3>Beschwerde bearbeiten</h3><button class="icon-button" type="button" data-close-dialog aria-label="Dialog schließen">×</button></div>
         <input id="edit-id" type="hidden" />
         <div class="field-grid edit-grid">
           <label>Titel<input id="edit-title" maxlength="90" required /></label>
@@ -112,22 +112,23 @@
         <label>Wiedergutmachung / Lösung<textarea id="edit-resolution" maxlength="2000" placeholder="Was wurde vereinbart?"></textarea></label>
         <label>Fällig bis <input id="edit-due" type="datetime-local" /></label>
         <p id="edit-message" class="form-message" role="status"></p>
-        <div class="modal-actions"><button class="pill" value="cancel">Abbrechen</button><button id="save-edit" class="primary" type="submit">Speichern</button></div>
+        <div class="modal-actions"><button class="pill" type="button" data-close-dialog>Abbrechen</button><button id="save-edit" class="primary" type="submit">Speichern</button></div>
       </form>
     </dialog>
 
     <dialog id="backup-dialog" class="modal small-modal">
       <form id="backup-form" method="dialog">
-        <div class="modal-heading"><h3>Backup verschlüsseln</h3><button class="icon-button" value="cancel" aria-label="Dialog schließen">×</button></div>
+        <div class="modal-heading"><h3>Backup verschlüsseln</h3><button class="icon-button" type="button" data-close-dialog aria-label="Dialog schließen">×</button></div>
         <p>Wähle ein starkes Passwort. Ohne dieses Passwort kann das Backup nicht geöffnet werden.</p>
         <label>Backup-Passwort<input id="backup-password" type="password" minlength="10" autocomplete="new-password" required /></label>
         <p id="backup-message" class="form-message" role="status"></p>
-        <div class="modal-actions"><button class="pill" value="cancel">Abbrechen</button><button id="backup-submit" class="primary" type="submit">Verschlüsseln</button></div>
+        <div class="modal-actions"><button class="pill" type="button" data-close-dialog>Abbrechen</button><button id="backup-submit" class="primary" type="submit">Verschlüsseln</button></div>
       </form>
     </dialog>
 
     <div id="toast" class="toast hidden" role="status"><span id="toast-text"></span><button id="toast-action" type="button" class="hidden">Rückgängig</button></div>
     <footer><span>Gemacht mit ♥</span> und dem festen Vorsatz, es besser zu machen.<form class="logout-form" action="/logout" method="post"><button class="logout-button" type="submit">Portal schließen</button></form></footer>
+    <script type="module" src="dialogs.js"></script>
     <script type="module" src="app.js"></script>
   </body>
 </html>
