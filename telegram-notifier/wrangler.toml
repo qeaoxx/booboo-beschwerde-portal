@@ -1,11 +1,19 @@
 name = "booboo-telegram-notifier"
-main = "src/index.js"
-compatibility_date = "2026-07-22"
+main = "src/entry.js"
+compatibility_date = "2026-07-23"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "booboo-beschwerde-portal-db"
 database_id = "e7e94403-02c0-445e-8f8f-94aed77ad0f4"
+
+[[kv_namespaces]]
+binding = "PHOTOS"
+id = "f50827b6638d46b58ac2c0e205c23a5e"
+
+[[queues.producers]]
+binding = "TELEGRAM_NOTIFICATIONS"
+queue = "booboo-telegram-notifications"
 
 [[queues.consumers]]
 queue = "booboo-telegram-notifications"
@@ -14,3 +22,10 @@ max_batch_timeout = 1
 max_retries = 100
 retry_delay = 600
 dead_letter_queue = "booboo-telegram-notifications-failed"
+
+[triggers]
+crons = ["*/10 * * * *", "17 3 * * *"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1

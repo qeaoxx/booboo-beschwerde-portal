@@ -1,11 +1,12 @@
 name = "booboo-portal"
 pages_build_output_dir = "./public"
-compatibility_date = "2026-07-18"
+compatibility_date = "2026-07-23"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "booboo-beschwerde-portal-db"
 database_id = "e7e94403-02c0-445e-8f8f-94aed77ad0f4"
+migrations_dir = "migrations"
 
 [[kv_namespaces]]
 binding = "PHOTOS"
@@ -14,3 +15,7 @@ id = "f50827b6638d46b58ac2c0e205c23a5e"
 [[queues.producers]]
 binding = "TELEGRAM_NOTIFICATIONS"
 queue = "booboo-telegram-notifications"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
