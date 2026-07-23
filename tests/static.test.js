@@ -36,3 +36,10 @@ test('all frontend ids are unique and direct selectors resolve', async () => {
   ]);
   for (const reference of references) assert.ok(ids.includes(reference), `Fehlende ID: ${reference}`);
 });
+
+test('complaint persistence is not rolled back for notification failures', async () => {
+  const source = await readFile(new URL('../functions/api/complaints/index.js', import.meta.url), 'utf8');
+  assert.match(source, /context\.waitUntil\(enqueueNotification/);
+  assert.doesNotMatch(source, /DELETE FROM complaints/);
+  assert.match(source, /notification_outbox/);
+});
