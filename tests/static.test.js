@@ -22,3 +22,17 @@ test('security headers and full function routing are present', async () => {
   assert.match(headers, /X-Frame-Options: DENY/);
   assert.deepEqual(JSON.parse(routes).include, ['/*']);
 });
+
+test('all frontend ids are unique and direct selectors resolve', async () => {
+  const [html, app] = await Promise.all([
+    readFile(new URL('../public/index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../public/app.js', import.meta.url), 'utf8'),
+  ]);
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(ids.length, new Set(ids).size);
+  const references = new Set([
+    ...[...app.matchAll(/\$\('#([A-Za-z0-9_-]+)'\)/g)].map((match) => match[1]),
+    ...[...app.matchAll(/\$\("#([A-Za-z0-9_-]+)"\)/g)].map((match) => match[1]),
+  ]);
+  for (const reference of references) assert.ok(ids.includes(reference), `Fehlende ID: ${reference}`);
+});
