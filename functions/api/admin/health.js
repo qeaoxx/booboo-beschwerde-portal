@@ -108,18 +108,24 @@ export async function onRequestPost({ request, env }) {
   const body = await request.json().catch(() => null);
   if (body?.action !== 'repair-orphans') return json({ error: 'Ungültige Wartungsaktion.' }, 400);
   const scan = await integrity(env, { includeAll: true });
-  const results = await Promise.allSettled(scan.orphaned.map((key) => env.PHOTOS.delete(key)));
+  const batch = scan.orphaned.slice(0, 100);
+  const results = await Promise.allSettled(batch.map((key) => env.PHOTOS.delete(key)));
   let removed = 0;
   for (let index = 0; index < results.length; index += 1) {
     if (results[index].status === 'fulfilled') {
       removed += 1;
     } else {
-      const key = scan.orphaned[index];
+      const key = batch[index];
       await env.DB.prepare(
         `INSERT OR REPLACE INTO cleanup_jobs (storage_key, kind, attempt_count, last_error, created_at, last_attempt_at)
          VALUES (?, 'orphan', 1, ?, ?, ?)`,
       ).bind(key, String(results[index].reason).slice(0, 500), new Date().toISOString(), new Date().toISOString()).run();
     }
   }
-  return json({ ok: true, removed, failed: results.length - removed });
+  return json({
+    ok: true,
+    removed,
+    failed: results.length - removed,
+    remaining: Math.max(0, scan.orphaned.length - batch.length),
+  });
 }
