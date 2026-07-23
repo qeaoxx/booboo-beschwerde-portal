@@ -1,6 +1,16 @@
 node_modules/
 data/complaints.json
 .env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+*.pem
+*.key
+*.p12
+*.pfx
 .DS_Store
 AGENTS.md
 .wrangler/
+coverage/
+*.log
