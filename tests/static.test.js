@@ -43,3 +43,24 @@ test('complaint persistence is not rolled back for notification failures', async
   assert.doesNotMatch(source, /DELETE FROM complaints/);
   assert.match(source, /notification_outbox/);
 });
+
+test('dialog cancel controls close without submitting edits', async () => {
+  const [html, dialogs] = await Promise.all([
+    readFile(new URL('../public/index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../public/dialogs.js', import.meta.url), 'utf8'),
+  ]);
+  assert.equal((html.match(/data-close-dialog/g) || []).length, 4);
+  assert.match(dialogs, /querySelectorAll\('\[data-close-dialog\]'\)/);
+});
+
+test('runtime schema always reconciles staggered legacy notification delivery', async () => {
+  const [schema, worker] = await Promise.all([
+    readFile(new URL('../lib/schema.js', import.meta.url), 'utf8'),
+    readFile(new URL('../telegram-notifier/src/entry.js', import.meta.url), 'utf8'),
+  ]);
+  for (const source of [schema, worker]) {
+    assert.match(source, /reconcileLegacyNotifications/);
+    assert.doesNotMatch(source, /if \(version\?\.setting_value === '5'\) return/);
+    assert.match(source, /notification_deliveries WHERE status = 'sent'/);
+  }
+});
