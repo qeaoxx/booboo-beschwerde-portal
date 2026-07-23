@@ -2,7 +2,7 @@ name: Portal checks
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'agent/**']
   pull_request:
 
 permissions:
