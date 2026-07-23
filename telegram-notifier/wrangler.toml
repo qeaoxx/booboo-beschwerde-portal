@@ -1,5 +1,5 @@
 name = "booboo-telegram-notifier"
-main = "src/index.js"
+main = "src/entry.js"
 compatibility_date = "2026-07-23"
 
 [[d1_databases]]
