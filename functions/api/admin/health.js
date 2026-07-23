@@ -2,7 +2,7 @@ import { json, logError, requireSameOrigin } from '../../../lib/http.js';
 import { ensureSchema } from '../../../lib/schema.js';
 import { isAdminSession } from '../../../lib/security.js';
 
-async function listKvKeys(kv, prefix, maximum = 10_000) {
+async function listKvKeys(kv, prefix, maximum = 100_000) {
   const keys = [];
   let cursor;
   do {
@@ -13,7 +13,7 @@ async function listKvKeys(kv, prefix, maximum = 10_000) {
   return keys.slice(0, maximum);
 }
 
-async function integrity(env) {
+async function integrity(env, { includeAll = false } = {}) {
   const { results: rows } = await env.DB.prepare(
     `SELECT p.id, p.storage_key, d.thumbnail_storage_key
      FROM complaint_photos p LEFT JOIN photo_derivatives d ON d.photo_id = p.id`,
@@ -32,7 +32,7 @@ async function integrity(env) {
     missingCount: missing.length,
     orphanedCount: orphaned.length,
     missing: missing.slice(0, 50),
-    orphaned: orphaned.slice(0, 50),
+    orphaned: includeAll ? orphaned : orphaned.slice(0, 50),
   };
 }
 
@@ -107,7 +107,7 @@ export async function onRequestPost({ request, env }) {
   await ensureSchema(env.DB);
   const body = await request.json().catch(() => null);
   if (body?.action !== 'repair-orphans') return json({ error: 'Ungültige Wartungsaktion.' }, 400);
-  const scan = await integrity(env);
+  const scan = await integrity(env, { includeAll: true });
   const results = await Promise.allSettled(scan.orphaned.map((key) => env.PHOTOS.delete(key)));
   let removed = 0;
   for (let index = 0; index < results.length; index += 1) {
