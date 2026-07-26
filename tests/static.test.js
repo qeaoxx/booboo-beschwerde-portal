@@ -54,6 +54,7 @@ test('visual polish includes dark mode, reduced motion and app identity', async 
   ]);
   assert.match(html, /manifest\.webmanifest/);
   assert.match(html, /favicon\.svg/);
+  assert.match(html, /polish-final\.css/);
   assert.match(html, /id="theme-toggle"/);
   assert.match(css, /html\[data-theme="dark"\]/);
   assert.match(css, /prefers-reduced-motion/);
