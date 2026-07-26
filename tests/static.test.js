@@ -46,18 +46,26 @@ test('all frontend ids are unique and direct selectors resolve', async () => {
   for (const reference of references) assert.ok(ids.includes(reference), `Fehlende ID: ${reference}`);
 });
 
-test('visual polish includes dark mode, reduced motion and app identity', async () => {
-  const [html, css, icon] = await Promise.all([
+test('visual polish includes dark mode, reduced motion and heart identity', async () => {
+  const [html, css, finalCss, icon, middleware] = await Promise.all([
     readPublic('index.html'),
     readPublic('polish.css'),
+    readPublic('polish-final.css'),
     readPublic('favicon.svg'),
+    readFile(new URL('../functions/_middleware.js', import.meta.url), 'utf8'),
   ]);
   assert.match(html, /manifest\.webmanifest/);
   assert.match(html, /favicon\.svg/);
   assert.match(html, /polish-final\.css/);
   assert.match(html, /id="theme-toggle"/);
+  assert.match(html, /class="brand-hearts"/);
+  assert.doesNotMatch(html, /class="brand-mark"/);
+  assert.match(middleware, /class="heart-mark"/);
+  assert.doesNotMatch(middleware, /class="mark"/);
   assert.match(css, /html\[data-theme="dark"\]/);
   assert.match(css, /prefers-reduced-motion/);
+  assert.match(finalCss, /\.complaint-card > p\.complaint-details/);
+  assert.match(finalCss, /border-left:\s*4px solid/);
   assert.match(icon, /<svg/);
   assert.match(icon, /Booboo Portal/);
 });
