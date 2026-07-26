@@ -8,6 +8,7 @@ import {
   checkLoginRateLimit,
   recordLoginFailure,
 } from '../lib/security.js';
+import { isSameOriginRequest } from '../lib/http.js';
 
 function requestWithCookie(cookie) {
   return new Request('https://example.test/', { headers: { Cookie: cookie.split(';')[0] } });
@@ -33,6 +34,44 @@ test('session cookies are HttpOnly, Secure and strict same-site', async () => {
   assert.match(cookie, /HttpOnly/);
   assert.match(cookie, /Secure/);
   assert.match(cookie, /SameSite=Strict/);
+});
+
+test('same-origin validation accepts the public Cloudflare host when the internal request URL differs', () => {
+  const request = new Request('https://internal.pages.dev/login', {
+    method: 'POST',
+    headers: {
+      Origin: 'https://booboo-portal.pages.dev',
+      Host: 'booboo-portal.pages.dev',
+      'X-Forwarded-Proto': 'https',
+      'Sec-Fetch-Site': 'same-origin',
+    },
+  });
+  assert.equal(isSameOriginRequest(request), true);
+});
+
+test('same-origin validation rejects unrelated origins even with same-site-looking metadata', () => {
+  const request = new Request('https://booboo-portal.pages.dev/login', {
+    method: 'POST',
+    headers: {
+      Origin: 'https://evil.example',
+      Host: 'booboo-portal.pages.dev',
+      'X-Forwarded-Proto': 'https',
+      'Sec-Fetch-Site': 'same-origin',
+    },
+  });
+  assert.equal(isSameOriginRequest(request), false);
+});
+
+test('same-origin validation accepts a matching referer when Origin is unavailable', () => {
+  const request = new Request('https://booboo-portal.pages.dev/login', {
+    method: 'POST',
+    headers: {
+      Referer: 'https://booboo-portal.pages.dev/login',
+      Host: 'booboo-portal.pages.dev',
+      'X-Forwarded-Proto': 'https',
+    },
+  });
+  assert.equal(isSameOriginRequest(request), true);
 });
 
 test('login limiter locks after five failures without storing the IP', async () => {
