@@ -144,11 +144,12 @@ jobs:
               .replace(/([?&](?:token|key|secret)=)[^&\s]+/gi, '$1[REDACTED]');
             if (!output) output = 'Wrangler lieferte keinen auswertbaren Fehlertext.';
             output = output.slice(-5000);
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 6,
-              body: `## Deploy fehlgeschlagen\n\nCommit: \`${context.sha}\`\n\n\`\`\`text\n${output}\n\`\`\``
+              body: `## Deploy fehlgeschlagen\n\nCommit: \`${context.sha}\`\nRun-ID: \`${context.runId}\`\nRun: ${runUrl}\n\n\`\`\`text\n${output}\n\`\`\``
             });
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
