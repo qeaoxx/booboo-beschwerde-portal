@@ -17,6 +17,76 @@
 .card-menu-popover .delete-button,
 .card-menu-popover .text-button { margin-left: 0; }
 
+/* A softer, personal identity on the page instead of a boxed initial. */
+.brand-hearts {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 54px;
+  margin-bottom: 18px;
+  color: var(--accent);
+  filter: drop-shadow(0 12px 20px color-mix(in srgb, var(--accent) 24%, transparent));
+}
+
+.brand-hearts .heart-main {
+  display: block;
+  font-size: 50px;
+  line-height: 1;
+  transform: rotate(-6deg);
+}
+
+.brand-hearts .heart-small {
+  position: absolute;
+  top: 0;
+  right: 1px;
+  color: var(--accent-bright);
+  font-size: 19px;
+  line-height: 1;
+  transform: rotate(13deg);
+}
+
+/* Give each complaint a clear reading order: header, story, proof, actions. */
+.complaint-card > .complaint-top {
+  margin: 0;
+  padding: 22px 22px 0;
+}
+
+.complaint-top > div:last-child { min-width: 0; }
+.complaint-title { overflow-wrap: anywhere; }
+
+.complaint-card > p.complaint-details {
+  margin: 18px 22px 16px !important;
+  padding: 16px 18px 17px;
+  border: 1px solid var(--border);
+  border-left: 4px solid color-mix(in srgb, var(--accent) 72%, var(--border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-soft) 76%, var(--surface-solid));
+  color: var(--text-soft) !important;
+  font-size: 15px;
+  line-height: 1.72;
+  letter-spacing: .002em;
+  overflow-wrap: anywhere;
+}
+
+.complaint-card > .response-box {
+  margin-left: 22px;
+  margin-right: 22px;
+}
+
+.complaint-card > .photo-grid {
+  grid-template-columns: repeat(auto-fill, minmax(112px, 148px));
+  justify-content: start;
+  margin: 0 22px 18px !important;
+}
+
+.complaint-card > .actions {
+  margin: 0;
+  padding: 16px 22px 18px;
+  border-radius: 0 0 22px 22px;
+  background: color-mix(in srgb, var(--surface-soft) 44%, transparent);
+}
+
 html[data-theme="dark"] .panel,
 html[data-theme="dark"] .form-section,
 html[data-theme="dark"] .complaint-card {
@@ -40,4 +110,27 @@ html[data-theme="dark"] input[type="file"]::file-selector-button {
   .stat.stat-resolved,
   .stat.stat-deleted,
   .stat.stat-total { grid-column: span 1; }
+
+  .brand-hearts {
+    width: 56px;
+    height: 49px;
+    margin-bottom: 15px;
+  }
+
+  .brand-hearts .heart-main { font-size: 44px; }
+  .brand-hearts .heart-small { right: 0; font-size: 17px; }
+
+  .complaint-card > .complaint-top { padding: 18px 15px 0; }
+  .complaint-card > p.complaint-details {
+    margin: 14px 15px 14px !important;
+    padding: 14px 15px 15px;
+    font-size: 14px;
+    line-height: 1.66;
+  }
+  .complaint-card > .response-box {
+    margin-left: 15px;
+    margin-right: 15px;
+  }
+  .complaint-card > .photo-grid { margin: 0 15px 15px !important; }
+  .complaint-card > .actions { padding: 14px 15px 16px; }
 }
