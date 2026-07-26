@@ -2,6 +2,15 @@
 
 Ein privates, rosafarbenes Beschwerdeportal auf Deutsch. Beschwerden werden in Cloudflare D1 gespeichert, Fotos bleiben als Streams in Workers KV und Telegram-Benachrichtigungen werden zuverlässig über Cloudflare Queues zugestellt.
 
+## Oberfläche
+
+- Ruhiges, responsives Pink-/Rosé-Design mit optionalem Dark Mode.
+- Das Formular ist in Gefühl, Fall und Beweise gegliedert und besitzt eine mobile Sticky-Aktion.
+- Das Dashboard funktioniert als persönliche Inbox mit Suche, Filtern, klaren Statuskarten und aufgeräumten Aktionsmenüs.
+- Eigene App-Identität mit SVG-Icon, Web-App-Manifest und installierbarer PWA-Hülle.
+- Der Service Worker speichert absichtlich keine privaten Seiten, Beschwerden, Fotos oder API-Antworten im Cache.
+- Animationen respektieren `prefers-reduced-motion`; Dark Mode und Darstellung bleiben rein lokal im Browser.
+
 ## Sicherheitsmodell
 
 - Das gesamte Portal wird serverseitig durch `BOOBOO_PORTAL_PASSWORD` geschützt.

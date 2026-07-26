@@ -1,0 +1,43 @@
+/* Final responsive and edge-case overrides. */
+.stats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.stat.stat-new,
+.stat.stat-heard,
+.stat.stat-resolved,
+.stat.stat-deleted,
+.stat.stat-total { grid-column: span 1; }
+
+.empty-state-error {
+  border: 1px solid color-mix(in srgb, var(--danger) 32%, var(--border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface-solid));
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.card-menu-popover .delete-button,
+.card-menu-popover .text-button { margin-left: 0; }
+
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .form-section,
+html[data-theme="dark"] .complaint-card {
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] input[type="file"]::file-selector-button {
+  color: var(--text);
+  background: var(--surface-muted);
+  border-color: var(--border);
+}
+
+@media (max-width: 900px) {
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat.stat-new { grid-column: span 2; }
+  .stat.stat-heard,
+  .stat.stat-resolved,
+  .stat.stat-deleted,
+  .stat.stat-total { grid-column: span 1; }
+}

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Booboo Portal</title>
+  <desc id="desc">Ein cremefarbenes B mit Herz auf pinkem Hintergrund.</desc>
+  <defs>
+    <linearGradient id="bg" x1="70" y1="42" x2="438" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f58bb8"/>
+      <stop offset="0.55" stop-color="#df4f8d"/>
+      <stop offset="1" stop-color="#a91f58"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#651032" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="132" fill="url(#bg)"/>
+  <circle cx="410" cy="104" r="54" fill="#ffd8e7" opacity="0.34"/>
+  <circle cx="92" cy="426" r="76" fill="#ffeff5" opacity="0.22"/>
+  <g filter="url(#shadow)">
+    <path d="M154 116h116c78 0 124 34 124 93 0 36-20 64-55 78 46 12 70 43 70 87 0 72-54 111-146 111H154V116Zm105 143c38 0 58-15 58-42 0-27-19-40-56-40h-31v82h29Zm12 164c40 0 61-17 61-48 0-30-22-46-65-46h-37v94h41Z" fill="#fff8f2"/>
+    <path d="M339 106c16-22 52-13 52 16 0 25-31 44-52 59-21-15-52-34-52-59 0-29 36-38 52-16Z" fill="#fff8f2"/>
+  </g>
+</svg>
