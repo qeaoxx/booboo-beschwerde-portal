@@ -6,18 +6,28 @@ const root = document.documentElement;
 const themeToggle = $('#theme-toggle');
 const installButton = $('#install-app');
 const themeMeta = $('meta[name="theme-color"]');
+const viewVisibility = new WeakMap();
 let installPrompt = null;
 let successBurstShown = false;
 
+function readSavedTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    return saved === 'light' || saved === 'dark' ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
 function preferredTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
-  if (saved === 'light' || saved === 'dark') return saved;
-  return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return readSavedTheme() || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 }
 
 function applyTheme(theme, persist = true) {
   root.dataset.theme = theme;
-  if (persist) localStorage.setItem(THEME_KEY, theme);
+  if (persist) {
+    try { localStorage.setItem(THEME_KEY, theme); } catch { /* Appearance still works for this page view. */ }
+  }
   const dark = theme === 'dark';
   if (themeToggle) {
     themeToggle.setAttribute('aria-label', dark ? 'Helles Design aktivieren' : 'Dunkles Design aktivieren');
@@ -33,7 +43,7 @@ applyTheme(preferredTheme(), false);
 themeToggle?.addEventListener('click', () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
 
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', (event) => {
-  if (!localStorage.getItem(THEME_KEY)) applyTheme(event.matches ? 'dark' : 'light', false);
+  if (!readSavedTheme()) applyTheme(event.matches ? 'dark' : 'light', false);
 });
 
 window.addEventListener('beforeinstallprompt', (event) => {
@@ -47,14 +57,14 @@ installButton?.addEventListener('click', async () => {
   installPrompt.prompt();
   await installPrompt.userChoice.catch(() => undefined);
   installPrompt = null;
-  installButton.classList.add('hidden');
+  installButton?.classList.add('hidden');
 });
 
 window.addEventListener('appinstalled', () => installButton?.classList.add('hidden'));
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => undefined);
+    navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
   });
 }
 
@@ -68,18 +78,9 @@ function updateGreeting() {
   subline.textContent = 'Deine private Inbox für alles, was gehört und geklärt werden soll.';
 }
 
-function animateVisibleView() {
-  $$('#complaint-view, #success-view, #admin-view').forEach((view) => {
-    if (view.classList.contains('hidden')) return;
-    view.classList.remove('view-enter');
-    requestAnimationFrame(() => view.classList.add('view-enter'));
-  });
-}
-
 function triggerHeartBurst() {
-  const success = $('#success-view');
   const burst = $('#heart-burst');
-  if (!success || !burst || success.classList.contains('hidden') || successBurstShown) return;
+  if (!burst || successBurstShown) return;
   successBurstShown = true;
   burst.replaceChildren(...Array.from({ length: 5 }, () => {
     const heart = document.createElement('span');
@@ -87,6 +88,25 @@ function triggerHeartBurst() {
     heart.setAttribute('aria-hidden', 'true');
     return heart;
   }));
+}
+
+function syncViews() {
+  $$('#complaint-view, #success-view, #admin-view').forEach((view) => {
+    const visible = !view.classList.contains('hidden');
+    const previous = viewVisibility.get(view);
+    viewVisibility.set(view, visible);
+    if (previous === visible) return;
+
+    if (visible) {
+      view.classList.remove('view-enter');
+      requestAnimationFrame(() => view.classList.add('view-enter'));
+      if (view.id === 'success-view') triggerHeartBurst();
+      if (view.id === 'admin-view') updateGreeting();
+    } else if (view.id === 'success-view') {
+      successBurstShown = false;
+      $('#heart-burst')?.replaceChildren();
+    }
+  });
 }
 
 function decorateStats() {
@@ -110,7 +130,7 @@ function buildCardMenu(card) {
   if ($('.card-menu', card)) return;
   const actions = $('.actions', card);
   if (!actions) return;
-  const movable = [$('.edit-button', actions), $('.delete-button', actions), $('.permanent-delete', actions)].filter(Boolean);
+  const movable = [...new Set([$('.edit-button', actions), $('.delete-button', actions), $('.permanent-delete', actions)].filter(Boolean))];
   if (!movable.length) return;
 
   const menu = document.createElement('details');
@@ -137,14 +157,11 @@ function decorateCard(card) {
 
 function renderFriendlyEmptyState(list, text) {
   const trash = text.includes('Papierkorb');
-  const noMatch = text.includes('passenden');
   const wrapper = document.createElement('div');
   wrapper.className = 'empty-state';
   wrapper.innerHTML = trash
     ? '<div class="empty-state-icon" aria-hidden="true">♡</div><strong>Hier liegt nichts herum.</strong><span>Der Papierkorb ist leer und alles ist ordentlich.</span>'
-    : noMatch
-      ? '<div class="empty-state-icon" aria-hidden="true">⌕</div><strong>Nichts Passendes gefunden.</strong><span>Ändere die Suche oder setze einen Filter zurück.</span>'
-      : '<div class="empty-state-icon" aria-hidden="true">♥</div><strong>Alles friedlich.</strong><span>Verdächtig friedlich – aktuell gibt es keine Beschwerden.</span>';
+    : '<div class="empty-state-icon" aria-hidden="true">⌕</div><strong>Nichts Passendes gefunden.</strong><span>Ändere die Suche oder setze einen Filter zurück.</span>';
   list.replaceChildren(wrapper);
 }
 
@@ -166,9 +183,12 @@ function decorateComplaintList() {
   if (empty) {
     const text = empty.textContent.trim();
     if (text.includes('geladen')) renderSkeletons(list);
-    else {
+    else if (text.includes('Papierkorb ist leer') || text.includes('passenden Beschwerden')) {
       delete list.dataset.skeleton;
       renderFriendlyEmptyState(list, text);
+    } else {
+      delete list.dataset.skeleton;
+      empty.classList.add('empty-state', 'empty-state-error');
     }
     return;
   }
@@ -184,11 +204,7 @@ function closeOpenCardMenus(event) {
 
 document.addEventListener('click', closeOpenCardMenus);
 
-const viewObserver = new MutationObserver(() => {
-  animateVisibleView();
-  triggerHeartBurst();
-  updateGreeting();
-});
+const viewObserver = new MutationObserver(syncViews);
 $$('#complaint-view, #success-view, #admin-view').forEach((view) => viewObserver.observe(view, { attributes: true, attributeFilter: ['class'] }));
 
 const dashboardObserver = new MutationObserver(() => {
@@ -204,11 +220,15 @@ const filterPanel = $('#filter-panel');
 function syncFilterPanel() {
   if (!filterPanel) return;
   if (innerWidth > 600) filterPanel.open = true;
+  else if (!filterPanel.dataset.mobileInitialized) {
+    filterPanel.open = false;
+    filterPanel.dataset.mobileInitialized = 'true';
+  }
 }
 window.addEventListener('resize', syncFilterPanel, { passive: true });
 
 updateGreeting();
 decorateStats();
 decorateComplaintList();
-animateVisibleView();
+syncViews();
 syncFilterPanel();
