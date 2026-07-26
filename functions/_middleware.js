@@ -34,7 +34,7 @@ function loginPage({ error = '', lockedSeconds = 0 } = {}) {
     body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.11;background-image:radial-gradient(#c74b80 .6px,transparent .8px);background-size:12px 12px}
     .orb{position:fixed;border-radius:999px;filter:blur(1px);pointer-events:none}.orb.one{width:170px;height:170px;left:-70px;bottom:7%;background:rgba(235,107,162,.16)}.orb.two{width:120px;height:120px;right:-35px;top:9%;background:rgba(217,53,120,.13)}
     .card{position:relative;width:min(100%,450px);padding:42px 38px 36px;border:1px solid rgba(255,255,255,.94);border-radius:30px;background:rgba(255,252,253,.9);box-shadow:0 28px 90px rgba(91,23,55,.15),inset 0 1px rgba(255,255,255,.9);backdrop-filter:blur(24px);text-align:center}
-    .mark{width:58px;height:58px;display:grid;place-items:center;margin:0 auto 21px;border-radius:19px;background:linear-gradient(145deg,#f287b5,#b7205d);color:#fff;font:850 28px/1 Georgia,serif;box-shadow:0 14px 34px rgba(183,32,93,.25);transform:rotate(-3deg)}.mark span{transform:rotate(3deg)}
+    .heart-mark{position:relative;width:68px;height:58px;display:grid;place-items:center;margin:0 auto 20px;color:#d93578;filter:drop-shadow(0 13px 20px rgba(183,32,93,.22))}.heart-mark .heart-main{font-size:52px;line-height:1;transform:rotate(-6deg)}.heart-mark .heart-small{position:absolute;right:1px;top:0;color:#f287b5;font-size:19px;line-height:1;transform:rotate(13deg)}
     .eyebrow{margin:0 0 12px;color:#a92158;font:800 11px/1 ui-monospace,"SFMono-Regular",monospace;letter-spacing:.14em;text-transform:uppercase}
     h1{margin:0;font-size:clamp(38px,9vw,54px);letter-spacing:-.06em;line-height:.92}h1 em{color:#d93578;font-family:Georgia,serif;font-weight:700}
     .intro{max-width:350px;margin:20px auto 0;color:#6c5665;line-height:1.62;font-size:14px}
@@ -47,14 +47,14 @@ function loginPage({ error = '', lockedSeconds = 0 } = {}) {
     button:hover{transform:translateY(-2px);box-shadow:0 14px 31px rgba(175,35,91,.31)}button:active{transform:scale(.985)}button:focus-visible{outline:3px solid #7c1747;outline-offset:3px}
     .error{margin:15px 0 0;padding:10px 12px;border-radius:12px;background:#fff0f5;color:#9f174e;font-size:13px;font-weight:750;text-align:center}.retry{margin:8px 0 0;color:#775f6c;font-size:12px;text-align:center}
     .tiny{margin:19px 0 0;color:#806a76;font-size:11px}
-    @media(max-width:480px){body{padding:10px}.card{padding:34px 22px 29px;border-radius:25px}.mark{width:52px;height:52px;border-radius:17px}.intro{font-size:13px}form{padding:16px}}
+    @media(max-width:480px){body{padding:10px}.card{padding:34px 22px 29px;border-radius:25px}.heart-mark{width:60px;height:52px}.heart-mark .heart-main{font-size:46px}.intro{font-size:13px}form{padding:16px}}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
   </style>
 </head>
 <body>
   <div class="orb one" aria-hidden="true"></div><div class="orb two" aria-hidden="true"></div>
   <main class="card">
-    <div class="mark" aria-hidden="true"><span>B</span></div>
+    <div class="heart-mark" aria-hidden="true"><span class="heart-main">♥</span><span class="heart-small">♥</span></div>
     <p class="eyebrow">Nur für euch zwei</p>
     <h1>Booboo<br><em>Beschwerde Portal.</em></h1>
     <p class="intro">Dieser kleine Ort ist privat. Gib euren gemeinsamen Zugangscode ein, um weiterzugehen.</p>
