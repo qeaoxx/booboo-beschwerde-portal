@@ -57,7 +57,9 @@ Die Anwendung erstellt die ergänzenden Tabellen zusätzlich idempotent zur Lauf
 
 ## Deployment
 
-Pages:
+Pushes auf `main` werden nach vollständigen Prüfungen automatisch auf das bestehende Cloudflare-Pages-Projekt `booboo-portal` veröffentlicht. Der Workflow benötigt die GitHub-Secrets `CLOUDFLARE_API_TOKEN` und `CLOUDFLARE_ACCOUNT_ID` und schreibt einen eindeutigen Produktionsstatus auf den jeweiligen Main-Commit.
+
+Manueller Pages-Deploy:
 
 ```bash
 npm run deploy
