@@ -19,10 +19,6 @@ permissions:
   deployments: write
   statuses: write
 
-concurrency:
-  group: cloudflare-pages-production
-  cancel-in-progress: false
-
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -44,6 +40,9 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: cloudflare-pages-production
+      cancel-in-progress: false
     environment:
       name: production
       url: https://booboo-portal.pages.dev
