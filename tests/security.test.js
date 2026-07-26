@@ -8,7 +8,7 @@ import {
   checkLoginRateLimit,
   recordLoginFailure,
 } from '../lib/security.js';
-import { isSameOriginRequest } from '../lib/http.js';
+import { isSameOriginRequest, requireSameOrigin } from '../lib/http.js';
 
 function requestWithCookie(cookie) {
   return new Request('https://example.test/', { headers: { Cookie: cookie.split(';')[0] } });
@@ -36,30 +36,52 @@ test('session cookies are HttpOnly, Secure and strict same-site', async () => {
   assert.match(cookie, /SameSite=Strict/);
 });
 
-test('same-origin validation accepts the public Cloudflare host when the internal request URL differs', () => {
+test('same-origin browser login survives Cloudflare internal URL differences', () => {
+  const request = new Request('https://internal.pages.dev/login', {
+    method: 'POST',
+    headers: {
+      Origin: 'https://booboo-portal.pages.dev',
+      'Sec-Fetch-Site': 'same-origin',
+    },
+  });
+  assert.equal(isSameOriginRequest(request), true);
+  assert.equal(requireSameOrigin(request), null);
+});
+
+test('same-origin validation accepts the public Cloudflare host as a fallback', () => {
   const request = new Request('https://internal.pages.dev/login', {
     method: 'POST',
     headers: {
       Origin: 'https://booboo-portal.pages.dev',
       Host: 'booboo-portal.pages.dev',
       'X-Forwarded-Proto': 'https',
-      'Sec-Fetch-Site': 'same-origin',
     },
   });
   assert.equal(isSameOriginRequest(request), true);
 });
 
-test('same-origin validation rejects unrelated origins even with same-site-looking metadata', () => {
-  const request = new Request('https://booboo-portal.pages.dev/login', {
+test('cross-site and Pages sibling-site writes remain blocked', async () => {
+  const crossSite = new Request('https://booboo-portal.pages.dev/login', {
     method: 'POST',
     headers: {
       Origin: 'https://evil.example',
-      Host: 'booboo-portal.pages.dev',
-      'X-Forwarded-Proto': 'https',
-      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Site': 'cross-site',
     },
   });
-  assert.equal(isSameOriginRequest(request), false);
+  const siblingSite = new Request('https://booboo-portal.pages.dev/login', {
+    method: 'POST',
+    headers: {
+      Origin: 'https://other-project.pages.dev',
+      'Sec-Fetch-Site': 'same-site',
+    },
+  });
+
+  assert.equal(isSameOriginRequest(crossSite), false);
+  assert.equal(isSameOriginRequest(siblingSite), false);
+
+  const rejection = requireSameOrigin(crossSite);
+  assert.equal(rejection.status, 403);
+  assert.deepEqual(await rejection.json(), { error: 'Diese Anfrage wurde aus Sicherheitsgründen abgelehnt.' });
 });
 
 test('same-origin validation accepts a matching referer when Origin is unavailable', () => {
