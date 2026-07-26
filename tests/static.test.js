@@ -2,12 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
+async function readPublic(name) {
+  return readFile(new URL(`../public/${name}`, import.meta.url), 'utf8');
+}
+
 test('frontend does not expose admin password or external fonts', async () => {
-  const [html, app] = await Promise.all([
-    readFile(new URL('../public/index.html', import.meta.url), 'utf8'),
-    readFile(new URL('../public/app.js', import.meta.url), 'utf8'),
+  const [html, app, polish] = await Promise.all([
+    readPublic('index.html'),
+    readPublic('app.js'),
+    readPublic('polish.css'),
   ]);
-  assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/);
+  for (const source of [html, app, polish]) assert.doesNotMatch(source, /fonts\.googleapis|fonts\.gstatic/);
   assert.doesNotMatch(app, /x-admin-password/i);
   assert.doesNotMatch(app, /boobooAdminPassword/);
   assert.match(html, /noindex,nofollow/);
@@ -15,26 +20,59 @@ test('frontend does not expose admin password or external fonts', async () => {
 
 test('security headers and full function routing are present', async () => {
   const [headers, routes] = await Promise.all([
-    readFile(new URL('../public/_headers', import.meta.url), 'utf8'),
-    readFile(new URL('../public/_routes.json', import.meta.url), 'utf8'),
+    readPublic('_headers'),
+    readPublic('_routes.json'),
   ]);
   assert.match(headers, /Content-Security-Policy/);
   assert.match(headers, /X-Frame-Options: DENY/);
+  assert.match(headers, /worker-src 'self'/);
+  assert.match(headers, /manifest-src 'self'/);
   assert.deepEqual(JSON.parse(routes).include, ['/*']);
 });
 
 test('all frontend ids are unique and direct selectors resolve', async () => {
-  const [html, app] = await Promise.all([
-    readFile(new URL('../public/index.html', import.meta.url), 'utf8'),
-    readFile(new URL('../public/app.js', import.meta.url), 'utf8'),
+  const [html, app, polish] = await Promise.all([
+    readPublic('index.html'),
+    readPublic('app.js'),
+    readPublic('ui-polish.js'),
   ]);
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(ids.length, new Set(ids).size);
+  const source = `${app}\n${polish}`;
   const references = new Set([
-    ...[...app.matchAll(/\$\('#([A-Za-z0-9_-]+)'\)/g)].map((match) => match[1]),
-    ...[...app.matchAll(/\$\("#([A-Za-z0-9_-]+)"\)/g)].map((match) => match[1]),
+    ...[...source.matchAll(/\$\('#([A-Za-z0-9_-]+)'\)/g)].map((match) => match[1]),
+    ...[...source.matchAll(/\$\("#([A-Za-z0-9_-]+)"\)/g)].map((match) => match[1]),
   ]);
   for (const reference of references) assert.ok(ids.includes(reference), `Fehlende ID: ${reference}`);
+});
+
+test('visual polish includes dark mode, reduced motion and app identity', async () => {
+  const [html, css, icon] = await Promise.all([
+    readPublic('index.html'),
+    readPublic('polish.css'),
+    readPublic('favicon.svg'),
+  ]);
+  assert.match(html, /manifest\.webmanifest/);
+  assert.match(html, /favicon\.svg/);
+  assert.match(html, /id="theme-toggle"/);
+  assert.match(css, /html\[data-theme="dark"\]/);
+  assert.match(css, /prefers-reduced-motion/);
+  assert.match(icon, /<svg/);
+  assert.match(icon, /Booboo Portal/);
+});
+
+test('private PWA uses a network-only service worker', async () => {
+  const [manifestSource, worker] = await Promise.all([
+    readPublic('manifest.webmanifest'),
+    readPublic('sw.js'),
+  ]);
+  const manifest = JSON.parse(manifestSource);
+  assert.equal(manifest.display, 'standalone');
+  assert.equal(manifest.start_url, '/');
+  assert.ok(manifest.icons.some((icon) => icon.src === '/favicon.svg'));
+  assert.doesNotMatch(worker, /caches\.open|cache\.put|addAll/);
+  assert.doesNotMatch(worker, /addEventListener\(['"]fetch/);
+  assert.match(worker, /caches\.keys/);
 });
 
 test('complaint persistence is not rolled back for notification failures', async () => {
@@ -46,8 +84,8 @@ test('complaint persistence is not rolled back for notification failures', async
 
 test('dialog cancel controls close without submitting edits', async () => {
   const [html, dialogs] = await Promise.all([
-    readFile(new URL('../public/index.html', import.meta.url), 'utf8'),
-    readFile(new URL('../public/dialogs.js', import.meta.url), 'utf8'),
+    readPublic('index.html'),
+    readPublic('dialogs.js'),
   ]);
   assert.equal((html.match(/data-close-dialog/g) || []).length, 4);
   assert.match(dialogs, /querySelectorAll\('\[data-close-dialog\]'\)/);
