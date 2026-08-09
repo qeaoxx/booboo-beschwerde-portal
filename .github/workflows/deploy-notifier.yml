@@ -113,10 +113,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
         with:
           script: |
             const fs = require('fs');
-            let output = steps.credentials?.outcome === 'failure'
+            let output = process.env.CREDENTIALS_OUTCOME === 'failure'
               ? 'Cloudflare-Zugangsdaten fehlen oder sind leer.'
               : (fs.existsSync('wrangler-notifier.log')
                 ? fs.readFileSync('wrangler-notifier.log', 'utf8').trim()
