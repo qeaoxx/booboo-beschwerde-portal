@@ -1,4 +1,4 @@
-name: Deploy Cloudflare Pages
+name: Deploy Cloudflare
 
 on:
   push:
@@ -9,6 +9,8 @@ on:
       - 'public/**'
       - 'functions/**'
       - 'lib/**'
+      - 'telegram-notifier/**'
+      - 'migrations/**'
       - 'package.json'
       - 'package-lock.json'
       - 'wrangler.toml'
@@ -35,14 +37,16 @@ jobs:
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Run complete checks
         run: npm run check
+      - name: Validate Telegram Worker bundle
+        run: npx wrangler deploy --dry-run --config telegram-notifier/wrangler.toml
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     concurrency:
-      group: cloudflare-pages-production
+      group: cloudflare-production
       cancel-in-progress: false
     environment:
       name: production
@@ -59,15 +63,23 @@ jobs:
       - name: Install deployment dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
 
-      - name: Mark deployment pending
+      - name: Mark deployments pending
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.repos.createCommitStatus({
+            const common = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.sha,
-              state: 'pending',
+              state: 'pending'
+            };
+            await github.rest.repos.createCommitStatus({
+              ...common,
+              context: 'cloudflare-telegram-production',
+              description: 'Deploying Telegram notification worker'
+            });
+            await github.rest.repos.createCommitStatus({
+              ...common,
               context: 'cloudflare-pages-production',
               description: 'Deploying to Cloudflare Pages'
             });
@@ -95,8 +107,8 @@ jobs:
             };
             await github.rest.repos.createCommitStatus({
               ...common,
-              context: 'cloudflare-pages-credentials',
-              description: 'Missing CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID'
+              context: 'cloudflare-telegram-production',
+              description: 'Deployment blocked by missing Cloudflare credentials'
             });
             await github.rest.repos.createCommitStatus({
               ...common,
@@ -108,9 +120,79 @@ jobs:
         if: steps.credentials.outcome == 'failure'
         run: exit 1
 
+      - name: Deploy Telegram notification worker
+        id: notifier-deploy
+        if: steps.credentials.outcome == 'success'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set +e
+          npx wrangler deploy \
+            --config telegram-notifier/wrangler.toml \
+            --keep-vars \
+            > wrangler-notifier.log 2>&1
+          status=$?
+          cat wrangler-notifier.log
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Mark Telegram worker deployment successful
+        if: steps.notifier-deploy.outputs.exit_code == '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: 'success',
+              context: 'cloudflare-telegram-production',
+              description: 'Telegram notification worker is live'
+            });
+
+      - name: Record sanitized Telegram worker deployment error
+        if: steps.notifier-deploy.outputs.exit_code != '0' && steps.credentials.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        with:
+          script: |
+            const fs = require('fs');
+            let output = fs.existsSync('wrangler-notifier.log')
+              ? fs.readFileSync('wrangler-notifier.log', 'utf8').trim()
+              : 'Wrangler hat keine Logdatei erzeugt.';
+            for (const secret of [process.env.CLOUDFLARE_API_TOKEN, process.env.CLOUDFLARE_ACCOUNT_ID].filter(Boolean)) {
+              output = output.split(secret).join('[REDACTED]');
+            }
+            output = output
+              .replace(/Bearer\s+[^\s]+/gi, 'Bearer [REDACTED]')
+              .replace(/([?&](?:token|key|secret)=)[^&\s]+/gi, '$1[REDACTED]')
+              .slice(-7000);
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 6,
+              body: `## Telegram-Worker-Deploy fehlgeschlagen\n\nCommit: \`${context.sha}\`\nRun-ID: \`${context.runId}\`\nRun: ${runUrl}\n\n\`\`\`text\n${output}\n\`\`\``
+            });
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: 'failure',
+              context: 'cloudflare-telegram-production',
+              description: 'Telegram notification worker deployment failed'
+            });
+
+      - name: Stop when Telegram worker deployment failed
+        if: steps.notifier-deploy.outputs.exit_code != '0' && steps.credentials.outcome == 'success'
+        run: exit 1
+
       - name: Deploy production with Wrangler
         id: pages-deploy
-        if: steps.credentials.outcome == 'success'
+        if: steps.notifier-deploy.outputs.exit_code == '0'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -142,7 +224,7 @@ jobs:
             });
 
       - name: Record sanitized deployment error
-        if: steps.pages-deploy.outputs.exit_code != '0' && steps.credentials.outcome == 'success'
+        if: steps.pages-deploy.outputs.exit_code != '0' && steps.notifier-deploy.outputs.exit_code == '0'
         uses: actions/github-script@v7
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -165,7 +247,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 6,
-              body: `## Deploy fehlgeschlagen\n\nCommit: \`${context.sha}\`\nRun-ID: \`${context.runId}\`\nRun: ${runUrl}\n\n\`\`\`text\n${output}\n\`\`\``
+              body: `## Pages-Deploy fehlgeschlagen\n\nCommit: \`${context.sha}\`\nRun-ID: \`${context.runId}\`\nRun: ${runUrl}\n\n\`\`\`text\n${output}\n\`\`\``
             });
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
@@ -177,5 +259,5 @@ jobs:
             });
 
       - name: Fail job after deployment error
-        if: steps.pages-deploy.outputs.exit_code != '0' && steps.credentials.outcome == 'success'
+        if: steps.pages-deploy.outputs.exit_code != '0' && steps.notifier-deploy.outputs.exit_code == '0'
         run: exit 1
