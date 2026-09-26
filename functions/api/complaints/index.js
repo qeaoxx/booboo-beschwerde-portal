@@ -1,4 +1,4 @@
-import { attachPhotos, complaintFromRow, enqueueNotification } from '../../../lib/complaints.js';
+import { attachPhotos, complaintFromRow } from '../../../lib/complaints.js';
 import { json, logError, requestId, requireSameOrigin } from '../../../lib/http.js';
 import { ensureSchema } from '../../../lib/schema.js';
 import { isAdminSession } from '../../../lib/security.js';
@@ -58,7 +58,6 @@ export async function onRequestPost(context) {
     updatedAt: now,
     photos: [],
   };
-  const notificationId = crypto.randomUUID();
   const uploaded = [];
   const photoStatements = [];
   const derivativeStatements = [];
@@ -114,14 +113,6 @@ export async function onRequestPost(context) {
       ...photoStatements,
       ...derivativeStatements,
       context.env.DB.prepare(
-        `INSERT INTO notification_outbox (id, complaint_id, status, created_at)
-         VALUES (?, ?, 'pending', ?)`,
-      ).bind(notificationId, complaint.id, now),
-      context.env.DB.prepare(
-        `INSERT INTO notification_deliveries (id, complaint_id, status, created_at)
-         VALUES (?, ?, 'pending', ?)`,
-      ).bind(notificationId, complaint.id, now),
-      context.env.DB.prepare(
         `INSERT INTO complaint_events (id, complaint_id, event_type, payload, created_at)
          VALUES (?, ?, 'created', ?, ?)`,
       ).bind(crypto.randomUUID(), complaint.id, JSON.stringify({ photoCount: complaint.photos.length, priority: complaint.priority }), now),
@@ -137,8 +128,7 @@ export async function onRequestPost(context) {
     return json({ error: 'Die Beschwerde konnte nicht sicher gespeichert werden. Bitte versuche es erneut.' }, 500);
   }
 
-  context.waitUntil(enqueueNotification(context, notificationId, complaint));
-  return json({ complaint, notification: { status: 'pending' } }, 201);
+  return json({ complaint }, 201);
 }
 
 export async function onRequestGet({ request, env }) {
@@ -180,11 +170,8 @@ export async function onRequestGet({ request, env }) {
   const sql = `SELECT
       c.id, c.title, c.details, c.category, c.mood, c.status, c.priority, c.created_at,
       s.updated_at, s.heard_at, s.resolved_at, s.deleted_at, s.response_text, s.resolution_text, s.due_at, s.version,
-      n.id AS notification_id, n.status AS notification_status, n.attempt_count AS notification_attempt_count,
-      n.last_error AS notification_last_error, n.sent_at AS notification_sent_at
     FROM complaints c
     LEFT JOIN complaint_state s ON s.complaint_id = c.id
-    LEFT JOIN notification_outbox n ON n.complaint_id = c.id
     ${where}
     ORDER BY ${sortSql(url.searchParams.get('sort'))}
     LIMIT ? OFFSET ?`;

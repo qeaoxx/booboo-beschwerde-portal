@@ -19,4 +19,4 @@ jobs:
           node-version: 22
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm run check
-      - run: npx wrangler deploy --dry-run --config telegram-notifier/wrangler.toml
+      - run: npx wrangler deploy --dry-run --config maintenance-worker/wrangler.toml

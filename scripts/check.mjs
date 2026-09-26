@@ -39,7 +39,6 @@ for (const file of files.filter((path) => extname(path) === '.js' || extname(pat
 const forbidden = [
   /x-admin-password/i,
   /sessionStorage\.setItem\(['"]boobooAdminPassword/i,
-  /TELEGRAM_BOT_TOKEN\s*=\s*['"][^'"]+['"]/,
   /BOOBOO_(?:PORTAL|ADMIN)_PASSWORD\s*=\s*['"][^'"]+['"]/,
 ];
 for (const file of files.filter((path) => ['.js', '.mjs', '.html', '.toml', '.md'].includes(extname(path)) && !path.includes('/tests/') && !path.endsWith('/scripts/check.mjs'))) {

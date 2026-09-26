@@ -20,11 +20,8 @@ async function loadComplaint(env, id) {
     `SELECT
       c.id, c.title, c.details, c.category, c.mood, c.status, c.priority, c.created_at,
       s.updated_at, s.heard_at, s.resolved_at, s.deleted_at, s.response_text, s.resolution_text, s.due_at, s.version,
-      n.id AS notification_id, n.status AS notification_status, n.attempt_count AS notification_attempt_count,
-      n.last_error AS notification_last_error, n.sent_at AS notification_sent_at
      FROM complaints c
      LEFT JOIN complaint_state s ON s.complaint_id = c.id
-     LEFT JOIN notification_outbox n ON n.complaint_id = c.id
      WHERE c.id = ?`,
   ).bind(id).first();
   if (!row) return null;
@@ -117,11 +114,6 @@ export async function onRequestPatch(context) {
           : { fields: changedFields }),
         now,
       ),
-      ...(current.status !== next.status ? [
-        context.env.DB.prepare(
-          `UPDATE notification_outbox SET last_synced_status = NULL WHERE complaint_id = ? AND status = 'sent'`,
-        ).bind(current.id),
-      ] : []),
     ]);
   } catch (error) {
     logError('complaint_update_failed', error, { complaintId: current.id });
@@ -150,13 +142,6 @@ export async function onRequestDelete(context) {
         `UPDATE complaint_state SET deleted_at = ?, updated_at = ?, version = version + 1 WHERE complaint_id = ?`,
       ).bind(now, now, current.id),
       context.env.DB.prepare(
-        `UPDATE notification_outbox
-         SET status = CASE WHEN status = 'sent' THEN status ELSE 'cancelled' END,
-             last_error = CASE WHEN status = 'sent' THEN last_error ELSE NULL END
-         WHERE complaint_id = ?`,
-      ).bind(current.id),
-      context.env.DB.prepare(`DELETE FROM notification_deliveries WHERE complaint_id = ? AND status = 'pending'`).bind(current.id),
-      context.env.DB.prepare(
         `INSERT INTO complaint_events (id, complaint_id, event_type, payload, created_at)
          VALUES (?, ?, 'deleted', NULL, ?)`,
       ).bind(crypto.randomUUID(), current.id, now),
@@ -181,8 +166,6 @@ export async function onRequestDelete(context) {
       ...entries.map((entry) => context.env.DB.prepare(
         `INSERT OR IGNORE INTO cleanup_jobs (storage_key, kind, created_at) VALUES (?, ?, ?)`,
       ).bind(entry.key, entry.kind, now)),
-      context.env.DB.prepare('DELETE FROM notification_deliveries WHERE complaint_id = ?').bind(current.id),
-      context.env.DB.prepare('DELETE FROM notification_outbox WHERE complaint_id = ?').bind(current.id),
       context.env.DB.prepare('DELETE FROM complaint_events WHERE complaint_id = ?').bind(current.id),
       context.env.DB.prepare('DELETE FROM photo_derivatives WHERE photo_id IN (SELECT id FROM complaint_photos WHERE complaint_id = ?)').bind(current.id),
       context.env.DB.prepare('DELETE FROM complaint_photos WHERE complaint_id = ?').bind(current.id),

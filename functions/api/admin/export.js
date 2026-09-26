@@ -5,7 +5,7 @@ import { isAdminSession } from '../../../lib/security.js';
 export async function onRequestGet({ request, env }) {
   if (!(await isAdminSession(request, env))) return json({ error: 'Dashboard-Anmeldung erforderlich.' }, 401);
   await ensureSchema(env.DB);
-  const [complaints, photos, events, notifications] = await Promise.all([
+  const [complaints, photos, events] = await Promise.all([
     env.DB.prepare(
       `SELECT c.*, s.updated_at, s.heard_at, s.resolved_at, s.deleted_at, s.response_text, s.resolution_text, s.due_at, s.version
        FROM complaints c LEFT JOIN complaint_state s ON s.complaint_id = c.id ORDER BY c.created_at ASC`,
@@ -16,10 +16,6 @@ export async function onRequestGet({ request, env }) {
     ).all(),
     env.DB.prepare(
       `SELECT id, complaint_id, event_type, payload, created_at FROM complaint_events ORDER BY created_at ASC`,
-    ).all(),
-    env.DB.prepare(
-      `SELECT id, complaint_id, status, attempt_count, telegram_message_id, last_error, queued_at, last_attempt_at, sent_at, failed_at, created_at
-       FROM notification_outbox ORDER BY created_at ASC`,
     ).all(),
   ]);
   return json({
@@ -44,6 +40,5 @@ export async function onRequestGet({ request, env }) {
       payload: event.payload ? JSON.parse(event.payload) : null,
       createdAt: event.created_at,
     })),
-    notifications: notifications.results,
   });
 }

@@ -9,8 +9,6 @@
     "check": "node scripts/check.mjs && node --test && npm run check:migrations",
     "test": "node --test",
     "deploy": "npm run check && wrangler pages deploy public --project-name booboo-portal --branch main",
-    "deploy:preview": "npm run check && wrangler pages deploy public --project-name booboo-portal --branch agent/perfect-portal-hardening",
-    "deploy:notifier": "npm run check && wrangler deploy --config telegram-notifier/wrangler.toml --keep-vars",
     "migrate": "wrangler d1 migrations apply booboo-beschwerde-portal-db --remote",
     "check:migrations": "python3 scripts/check_migrations.py"
   },

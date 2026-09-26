@@ -18,7 +18,6 @@ export async function onRequestPost({ request, env, params }) {
       `UPDATE complaint_state SET deleted_at = NULL, updated_at = ?, version = version + 1 WHERE complaint_id = ?`,
     ).bind(now, params.id),
     env.DB.prepare(
-      `UPDATE notification_outbox SET status = CASE WHEN status = 'cancelled' THEN 'pending' ELSE status END WHERE complaint_id = ?`,
     ).bind(params.id),
     env.DB.prepare(
       `INSERT INTO complaint_events (id, complaint_id, event_type, payload, created_at)

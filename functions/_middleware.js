@@ -13,67 +13,28 @@ import {
 } from '../lib/security.js';
 
 function loginPage({ error = '', lockedSeconds = 0 } = {}) {
-  const message = error
-    ? `<p class="error" role="alert">${error}</p>`
-    : '';
+  const message = error ? `<p class="error" role="alert">${error}</p>` : '';
   const retry = lockedSeconds > 0
-    ? `<p class="retry">Bitte warte noch ungefähr ${Math.ceil(lockedSeconds / 60)} Minute${lockedSeconds > 60 ? 'n' : ''}.</p>`
+    ? `<p class="error">Bitte warte noch ungefähr ${Math.ceil(lockedSeconds / 60)} Minute${lockedSeconds > 60 ? 'n' : ''}.</p>`
     : '';
   return `<!doctype html>
 <html lang="de">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#d93578">
-  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
-  <title>Nur für Booboo</title>
-  <style>
-    :root{color:#352735;background:#fff7f9;font-family:ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,sans-serif;color-scheme:light}
-    *{box-sizing:border-box}
-    body{min-height:100svh;margin:0;display:grid;place-items:center;padding:24px;overflow:hidden;background:radial-gradient(circle at 12% 12%,#ffd3e4 0,transparent 25rem),radial-gradient(circle at 90% 88%,#f6b9d0 0,transparent 29rem),linear-gradient(145deg,#fff9fb,#f8e8ef)}
-    body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.11;background-image:radial-gradient(#c74b80 .6px,transparent .8px);background-size:12px 12px}
-    .orb{position:fixed;border-radius:999px;filter:blur(1px);pointer-events:none}.orb.one{width:170px;height:170px;left:-70px;bottom:7%;background:rgba(235,107,162,.16)}.orb.two{width:120px;height:120px;right:-35px;top:9%;background:rgba(217,53,120,.13)}
-    .card{position:relative;width:min(100%,450px);padding:42px 38px 36px;border:1px solid rgba(255,255,255,.94);border-radius:30px;background:rgba(255,252,253,.9);box-shadow:0 28px 90px rgba(91,23,55,.15),inset 0 1px rgba(255,255,255,.9);backdrop-filter:blur(24px);text-align:center}
-    .heart-mark{position:relative;width:68px;height:58px;display:grid;place-items:center;margin:0 auto 20px;color:#d93578;filter:drop-shadow(0 13px 20px rgba(183,32,93,.22))}.heart-mark .heart-main{font-size:52px;line-height:1;transform:rotate(-6deg)}.heart-mark .heart-small{position:absolute;right:1px;top:0;color:#f287b5;font-size:19px;line-height:1;transform:rotate(13deg)}
-    .eyebrow{margin:0 0 12px;color:#a92158;font:800 11px/1 ui-monospace,"SFMono-Regular",monospace;letter-spacing:.14em;text-transform:uppercase}
-    h1{margin:0;font-size:clamp(38px,9vw,54px);letter-spacing:-.06em;line-height:.92}h1 em{color:#d93578;font-family:Georgia,serif;font-weight:700}
-    .intro{max-width:350px;margin:20px auto 0;color:#6c5665;line-height:1.62;font-size:14px}
-    .privacy{display:inline-flex;align-items:center;gap:7px;margin-top:17px;padding:6px 10px;border:1px solid #e8bfd0;border-radius:999px;background:#fff3f7;color:#765c69;font-size:11px;font-weight:750}.privacy::before{content:"";width:7px;height:7px;border-radius:999px;background:#45a576;box-shadow:0 0 0 3px #def3e8}
-    form{margin-top:27px;text-align:left;padding:19px;border:1px solid #e5bacb;border-radius:20px;background:rgba(255,247,250,.78)}
-    label{display:grid;gap:9px;color:#5e4554;font-size:13px;font-weight:800}
-    input{width:100%;border:1px solid #dbaabe;border-radius:13px;padding:14px 15px;outline:none;background:#fff;color:#352735;font:650 16px inherit;transition:border-color .15s,box-shadow .15s}
-    input:focus-visible{border-color:#d93578;box-shadow:0 0 0 4px rgba(217,53,120,.15)}
-    button{width:100%;margin-top:15px;border:0;border-radius:999px;padding:14px 20px;color:#fff;background:linear-gradient(135deg,#eb6ba2,#ae1f58);box-shadow:0 10px 26px rgba(175,35,91,.25);font:800 14px inherit;cursor:pointer;transition:transform .15s,box-shadow .15s}
-    button:hover{transform:translateY(-2px);box-shadow:0 14px 31px rgba(175,35,91,.31)}button:active{transform:scale(.985)}button:focus-visible{outline:3px solid #7c1747;outline-offset:3px}
-    .error{margin:15px 0 0;padding:10px 12px;border-radius:12px;background:#fff0f5;color:#9f174e;font-size:13px;font-weight:750;text-align:center}.retry{margin:8px 0 0;color:#775f6c;font-size:12px;text-align:center}
-    .tiny{margin:19px 0 0;color:#806a76;font-size:11px}
-    @media(max-width:480px){body{padding:10px}.card{padding:34px 22px 29px;border-radius:25px}.heart-mark{width:60px;height:52px}.heart-mark .heart-main{font-size:46px}.intro{font-size:13px}form{padding:16px}}
-    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
-  </style>
-</head>
-<body>
-  <div class="orb one" aria-hidden="true"></div><div class="orb two" aria-hidden="true"></div>
-  <main class="card">
-    <div class="heart-mark" aria-hidden="true"><span class="heart-main">♥</span><span class="heart-small">♥</span></div>
-    <p class="eyebrow">Nur für euch zwei</p>
-    <h1>Booboo<br><em>Beschwerde Portal.</em></h1>
-    <p class="intro">Dieser kleine Ort ist privat. Gib euren gemeinsamen Zugangscode ein, um weiterzugehen.</p>
-    <span class="privacy">Privat und geschützt</span>
-    <form method="post" action="/login">
-      <label>Zugangscode
-        <input name="password" type="password" autocomplete="current-password" required autofocus maxlength="256" placeholder="Gemeinsamen Code eingeben">
-      </label>
-      <button type="submit">Portal öffnen →</button>
-      ${message}${retry}
-    </form>
-    <p class="tiny">Keine fremden Beschwerden · keine öffentlichen Inhalte</p>
-  </main>
-</body>
-</html>`;
-}
-
-function secured(response, options) {
-  return applySecurityHeaders(response, options);
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7f3ed"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet"><title>Booboo — Privater Bereich</title>
+<style>
+:root{color:#38322d;background:#f7f3ed;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:light}*{box-sizing:border-box}
+body{min-height:100svh;margin:0;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 10% 15%,#ead7c8 0,transparent 28rem),radial-gradient(ellipse at 92% 90%,#ead3c9 0,transparent 30rem),#f7f3ed}
+.panel{display:grid;grid-template-columns:1.05fr .95fr;width:min(940px,100%);min-height:550px;border:1px solid #e6ddd4;background:#fffdf9;box-shadow:0 32px 100px #372a2018}
+.story{position:relative;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;padding:clamp(28px,5vw,54px);background:#eee4db}
+.brand{display:flex;align-items:center;gap:10px;color:#3a332e;font-size:15px;font-weight:750;letter-spacing:-.06em}.mark{display:grid;width:34px;height:34px;place-items:center;border:1px solid #be8c7d;border-radius:50%;color:#9e6564;font:italic 20px Georgia,serif}
+.overline{color:#a16c62;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase}.story h1{margin:20px 0;font:400 clamp(45px,6vw,67px)/.98 Georgia,serif;letter-spacing:-.07em}.story h1 em{color:#a76768}.story p{max-width:300px;color:#777067;font-size:13px;line-height:1.85}
+.note{position:absolute;right:40px;bottom:35px;width:133px;height:154px;padding:16px;background:#fbf8f1;box-shadow:0 15px 32px #4e3b2a19;transform:rotate(5deg)}.note small{color:#aa7770;font-size:8px;letter-spacing:.1em}.note strong{display:block;margin-top:22px;font:400 20px/1 Georgia,serif}.note em{color:#a76768}
+.form-side{display:flex;flex-direction:column;justify-content:center;padding:clamp(32px,6vw,62px)}.form-side h2{margin:15px 0 8px;font:400 36px Georgia,serif;letter-spacing:-.06em}.hint{margin:0 0 29px;color:#827a72;font-size:12px;line-height:1.8}
+label{display:block;margin-bottom:9px;color:#57504a;font-size:11px;font-weight:700}input{width:100%;height:48px;padding:0 14px;border:1px solid #e3dbd3;border-radius:2px;color:#38322d;background:#fffefa;font-size:13px}input:focus{border-color:#ae7772;outline:0;box-shadow:0 0 0 4px #ae77721f}
+button{display:flex;width:100%;height:48px;align-items:center;justify-content:space-between;margin-top:15px;padding:0 18px;border:0;border-radius:2px;color:#fffaf5;background:#37312d;font-size:11px;font-weight:650;cursor:pointer;transition:transform .2s,background .2s}button:hover{transform:translateY(-2px);background:#554642}
+.error{margin:13px 0 0;color:#a3444b;font-size:11px;line-height:1.6}.back{display:inline-block;margin-top:27px;color:#8c635f;font-size:11px;text-decoration:none}.back:hover{text-decoration:underline}.foot{margin-top:34px;color:#aaa097;font-size:9px;letter-spacing:.11em;text-transform:uppercase}
+@media(max-width:680px){body{padding:12px}.panel{grid-template-columns:1fr;min-height:0}.story{min-height:240px;padding:25px}.story h1{font-size:43px;margin:14px 0}.story p{max-width:255px;font-size:11px}.note{right:24px;bottom:18px;width:93px;height:112px;padding:11px}.note strong{margin-top:15px;font-size:15px}.form-side{padding:30px 25px}.foot{margin-top:24px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+</style></head><body><main class="panel"><section class="story" aria-label="Booboo"><div class="brand"><span class="mark" aria-hidden="true">b.</span><span>booboo</span></div><div><span class="overline">Euer privater Raum</span><h1>Ein offenes Ohr<br><em>fängt hier an.</em></h1><p>Ein liebevoller Ort für alles, was gesagt werden muss — geschützt und nur für euch zwei.</p></div><div class="note" aria-hidden="true"><small>AN BOOBOO · IMMER</small><strong>Manchmal hilft,<br>wenn jemand<br><em>zuhört.</em></strong></div></section><section class="form-side"><span class="overline">Privater Bereich</span><h2>Willkommen zurück.</h2><p class="hint">Melde dich an, um eure Nachrichten in Ruhe zu lesen.</p><form method="post" action="/login"><label for="password">Portal-Passwort</label><input id="password" name="password" type="password" autocomplete="current-password" required autofocus><button type="submit"><span>Geschützten Bereich öffnen</span><span aria-hidden="true">↗</span></button>${message}${retry}</form><a class="back" href="/">← Zurück zum Portal</a><p class="foot">Privat · Persönlich · Nur für euch</p></section></main></body></html>`;
 }
 
 export async function onRequest(context) {

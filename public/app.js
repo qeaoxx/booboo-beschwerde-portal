@@ -1,297 +1,347 @@
-const $ = (selector, root = document) => root.querySelector(selector);
-const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const complaintView = document.querySelector('#complaint-view');
+const successView = document.querySelector('#success-view');
+const adminView = document.querySelector('#admin-view');
+const loginPanel = document.querySelector('#login-panel');
+const dashboard = document.querySelector('#dashboard');
+const homeNav = document.querySelector('#home-nav');
+const siteFooter = document.querySelector('#site-footer');
+const adminLink = document.querySelector('#admin-link');
+const installAppButton = document.querySelector('#install-app');
+const form = document.querySelector('#complaint-form');
+const submissionIdInput = document.querySelector('#submission-id');
+const formMessage = document.querySelector('#form-message');
+const submitButton = document.querySelector('#submit-button');
+const titleInput = document.querySelector('#title');
+const detailsInput = document.querySelector('#details');
+const photosInput = document.querySelector('#photos');
+const dropZone = document.querySelector('#drop-zone');
+const photoPreviews = document.querySelector('#photo-previews');
+const photoCount = document.querySelector('#photo-count');
+const toast = document.querySelector('#toast');
+const deleteDialog = document.querySelector('#delete-dialog');
+const editDialog = document.querySelector('#edit-dialog');
+const backupDialog = document.querySelector('#backup-dialog');
+const verifyDialog = document.querySelector('#verify-dialog');
+const uploadProgress = document.querySelector('#upload-progress');
 
-const views = {
-  complaint: $('#complaint-view'),
-  success: $('#success-view'),
-  admin: $('#admin-view'),
-};
-const form = $('#complaint-form');
-const formMessage = $('#form-message');
-const submitButton = $('#submit-button');
-const photosInput = $('#photos');
-const photoCount = $('#photo-count');
-const photoPreviews = $('#photo-previews');
-const progressWrap = $('#upload-progress');
-const progressBar = $('#upload-progress-bar');
-const progressText = $('#upload-progress-text');
-const detailsInput = $('#details');
-const detailsCount = $('#details-count');
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+const MAX_PHOTOS = 5;
+const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
+const MAX_TOTAL_PHOTO_BYTES = 80 * 1024 * 1024;
+const STATUSES = [
+  { value: 'new', label: 'Neu', tone: 'rose' },
+  { value: 'heard', label: 'Gehört', tone: 'sand' },
+  { value: 'resolved', label: 'Erledigt', tone: 'green' },
+];
+const PRIORITIES = { low: 'Entspannt', normal: 'Normal', high: 'Wichtig', urgent: 'Dringend' };
 
-const state = {
-  selectedMood: '😤',
-  selectedFiles: [],
-  previewUrls: [],
-  submissionId: crypto.randomUUID(),
-  adminAuthenticated: false,
-  complaints: [],
-  stats: { new: 0, heard: 0, resolved: 0, deleted: 0, total: 0 },
-  categories: [],
-  page: 1,
-  hasMore: false,
-  loading: false,
-  undo: null,
-  toastTimer: null,
-  health: null,
-};
+let selectedMood = '😤';
+let selectedPhotos = [];
+let previewUrls = new Map();
+let complaints = [];
+let trashedComplaints = [];
+let activeFilter = 'all';
+let searchTerm = '';
+let sortOrder = 'newest';
+let activeCategory = '';
+let activePriority = '';
+let pendingDeleteId = '';
+let selectedBackupFile = null;
+let toastTimer;
+let installPrompt = null;
 
 function show(view) {
-  Object.values(views).forEach((element) => element.classList.add('hidden'));
+  [complaintView, successView, adminView].forEach((element) => element.classList.add('hidden'));
   view.classList.remove('hidden');
+  const isAdmin = view === adminView;
+  homeNav.classList.toggle('hidden', isAdmin || view === successView);
+  adminLink.classList.toggle('hidden', isAdmin);
+  siteFooter.classList.toggle('hidden', isAdmin);
+  if (view === adminView) {
+    loginPanel.classList.add('hidden');
+    dashboard.classList.add('hidden');
+  }
 }
 
 function formatDate(value) {
-  if (!value) return '—';
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return '—';
+  if (Number.isNaN(date.valueOf())) return 'Zeit unbekannt';
   return new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
-function formatBytes(value) {
-  const bytes = Number(value || 0);
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+function setHome() {
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  show(complaintView);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function setProgress(percent, text) {
-  progressWrap.classList.remove('hidden');
-  progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
-  progressText.textContent = text;
+function setAdmin() {
+  if (location.hash !== '#admin') history.pushState(null, '', '#admin');
+  show(adminView);
+  loadDashboard();
 }
 
-function resetProgress() {
-  progressWrap.classList.add('hidden');
-  progressBar.style.width = '0%';
-  progressText.textContent = 'Fotos werden vorbereitet…';
+function updateFormProgress() {
+  const titleComplete = titleInput.value.trim().length > 0;
+  const detailsComplete = detailsInput.value.trim().length > 0;
+  const complete = (titleComplete ? 45 : 0) + (detailsComplete ? 45 : 0) + 10;
+  document.querySelector('#progress-label').textContent = `${complete} %`;
+  document.querySelector('#progress-value').style.width = `${complete}%`;
+  document.querySelector('#title-count').textContent = `${titleInput.value.length} / 90`;
+  document.querySelector('#details-count').textContent = `${detailsInput.value.length.toLocaleString('de-DE')} / 2.500`;
 }
 
-function resetPhotoSelection() {
-  state.previewUrls.forEach((url) => URL.revokeObjectURL(url));
-  state.previewUrls = [];
-  state.selectedFiles = [];
-  photosInput.value = '';
-  photoPreviews.innerHTML = '';
-  photoCount.textContent = 'JPG, PNG, WebP oder HEIC · werden datensparsam optimiert';
-}
-
-function updateMoodButtons() {
-  $$('.mood').forEach((button) => {
-    const selected = button.dataset.mood === state.selectedMood;
-    button.classList.toggle('is-selected', selected);
-    button.setAttribute('aria-pressed', String(selected));
+document.querySelectorAll('.mood').forEach((button) => button.addEventListener('click', () => {
+  document.querySelectorAll('.mood').forEach((item) => {
+    const selected = item === button;
+    item.classList.toggle('is-selected', selected);
+    item.setAttribute('aria-pressed', String(selected));
   });
-}
-
-$$('.mood').forEach((button) => button.addEventListener('click', () => {
-  state.selectedMood = button.dataset.mood;
-  updateMoodButtons();
+  selectedMood = button.dataset.mood;
+  updateFormProgress();
 }));
 
-detailsInput.addEventListener('input', () => {
-  detailsCount.textContent = String(detailsInput.value.length);
-});
+titleInput.addEventListener('input', updateFormProgress);
+detailsInput.addEventListener('input', updateFormProgress);
+updateFormProgress();
+
+function readableSize(size) {
+  return size >= 1024 * 1024 ? `${(size / (1024 * 1024)).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
+}
+
+function releasePreviewUrls() {
+  previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  previewUrls = new Map();
+}
 
 function renderPhotoPreviews() {
-  state.previewUrls.forEach((url) => URL.revokeObjectURL(url));
-  state.previewUrls = [];
-  photoPreviews.innerHTML = '';
-  state.selectedFiles.forEach((file, index) => {
-    const card = document.createElement('article');
-    card.className = 'preview-card';
-    const image = document.createElement('img');
-    const url = URL.createObjectURL(file);
-    state.previewUrls.push(url);
-    image.src = url;
-    image.alt = `Vorschau von ${file.name}`;
+  releasePreviewUrls();
+  photoPreviews.replaceChildren();
+  selectedPhotos.forEach((photo, index) => {
+    const preview = document.createElement('div');
+    preview.className = 'photo-preview';
+    let thumbnail;
+    if (photo.type.startsWith('image/') && !['image/heic', 'image/heif'].includes(photo.type)) {
+      thumbnail = document.createElement('img');
+      thumbnail.className = 'preview-thumb';
+      thumbnail.alt = '';
+      const url = URL.createObjectURL(photo);
+      previewUrls.set(photo, url);
+      thumbnail.src = url;
+      thumbnail.addEventListener('error', () => {
+        const icon = document.createElement('span');
+        icon.className = 'preview-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = '▧';
+        thumbnail.replaceWith(icon);
+      }, { once: true });
+    } else {
+      thumbnail = document.createElement('span');
+      thumbnail.className = 'preview-icon';
+      thumbnail.setAttribute('aria-hidden', 'true');
+      thumbnail.textContent = '▧';
+    }
+
     const info = document.createElement('div');
-    info.className = 'file-info';
-    const name = document.createElement('strong');
-    name.textContent = file.name;
-    const size = document.createElement('span');
-    size.textContent = formatBytes(file.size);
+    info.className = 'preview-info';
+    const name = document.createElement('div');
+    name.className = 'preview-name';
+    name.textContent = photo.name;
+    const size = document.createElement('div');
+    size.className = 'preview-size';
+    size.textContent = readableSize(photo.size);
     info.append(name, size);
+
     const remove = document.createElement('button');
-    remove.type = 'button';
     remove.className = 'preview-remove';
-    remove.setAttribute('aria-label', `${file.name} entfernen`);
+    remove.type = 'button';
+    remove.setAttribute('aria-label', `${photo.name} entfernen`);
     remove.textContent = '×';
     remove.addEventListener('click', () => {
-      state.selectedFiles.splice(index, 1);
+      selectedPhotos.splice(index, 1);
+      syncPhotoInput();
       renderPhotoPreviews();
+      formMessage.textContent = '';
     });
-    card.append(image, info, remove);
-    photoPreviews.append(card);
+    preview.append(thumbnail, info, remove);
+    photoPreviews.append(preview);
   });
-  const count = state.selectedFiles.length;
-  photoCount.textContent = count
-    ? `${count} Foto${count === 1 ? '' : 's'} ausgewählt · ${formatBytes(state.selectedFiles.reduce((sum, file) => sum + file.size, 0))}`
-    : 'JPG, PNG, WebP oder HEIC · werden datensparsam optimiert';
+
+  photoCount.textContent = selectedPhotos.length
+    ? `${selectedPhotos.length} von 5 Fotos ausgewählt · insgesamt ${readableSize(selectedPhotos.reduce((sum, item) => sum + item.size, 0))}`
+    : 'Fotos bleiben privat im geschützten Portal.';
 }
 
-photosInput.addEventListener('change', () => {
-  const incoming = [...photosInput.files];
-  if (incoming.length > 5) {
-    formMessage.textContent = 'Bitte wähle höchstens 5 Fotos aus.';
-    state.selectedFiles = incoming.slice(0, 5);
-  } else {
-    formMessage.textContent = '';
-    state.selectedFiles = incoming;
+function syncPhotoInput() {
+  const transfer = new DataTransfer();
+  selectedPhotos.forEach((photo) => transfer.items.add(photo));
+  photosInput.files = transfer.files;
+}
+
+function addPhotos(files) {
+  const known = new Set(selectedPhotos.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
+  const candidates = [...files].filter((file) => !known.has(`${file.name}:${file.size}:${file.lastModified}`));
+  let next = [...selectedPhotos];
+  let issue = '';
+  for (const file of candidates) {
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) { issue = 'Bitte wähle JPG, PNG, WebP oder HEIC aus.'; continue; }
+    if (file.size > MAX_PHOTO_BYTES) { issue = 'Ein Foto ist größer als 25 MB. Bitte wähle ein kleineres aus.'; continue; }
+    if (next.length >= MAX_PHOTOS) { issue = 'Es können höchstens fünf Fotos angehängt werden.'; continue; }
+    if (next.reduce((sum, item) => sum + item.size, file.size) > MAX_TOTAL_PHOTO_BYTES) { issue = 'Alle Fotos zusammen dürfen höchstens 80 MB groß sein.'; continue; }
+    next.push(file);
   }
+  selectedPhotos = next;
+  syncPhotoInput();
   renderPhotoPreviews();
+  formMessage.textContent = issue;
+}
+
+photosInput.addEventListener('change', () => addPhotos(photosInput.files));
+dropZone.addEventListener('dragover', (event) => { event.preventDefault(); dropZone.classList.add('is-dragging'); });
+dropZone.addEventListener('dragleave', (event) => {
+  if (!dropZone.contains(event.relatedTarget)) dropZone.classList.remove('is-dragging');
+});
+dropZone.addEventListener('drop', (event) => {
+  event.preventDefault();
+  dropZone.classList.remove('is-dragging');
+  if (event.dataTransfer?.files) addPhotos(event.dataTransfer.files);
 });
 
-async function loadBitmap(file) {
-  if ('createImageBitmap' in window) return createImageBitmap(file, { imageOrientation: 'from-image' });
-  const url = URL.createObjectURL(file);
-  try {
-    const image = new Image();
-    image.decoding = 'async';
-    image.src = url;
-    await image.decode();
-    return image;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+function resetComposer() {
+  releasePreviewUrls();
+  form.reset();
+  selectedPhotos = [];
+  selectedMood = '😤';
+  submissionIdInput.value = crypto.randomUUID();
+  document.querySelectorAll('.mood').forEach((item, index) => {
+    const selected = index === 0;
+    item.classList.toggle('is-selected', selected);
+    item.setAttribute('aria-pressed', String(selected));
+  });
+  renderPhotoPreviews();
+  formMessage.textContent = '';
+  updateFormProgress();
 }
 
-function canvasBlob(canvas, type, quality) {
-  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
-}
-
-async function optimizePhoto(file) {
+async function createThumbnail(file) {
+  if (typeof createImageBitmap !== 'function') return null;
+  let bitmap;
   try {
-    const source = await loadBitmap(file);
-    const width = source.width || source.naturalWidth;
-    const height = source.height || source.naturalHeight;
-    if (!width || !height) throw new Error('Bild kann nicht gelesen werden.');
-    const scale = Math.min(1, 2560 / Math.max(width, height));
-    const targetWidth = Math.max(1, Math.round(width * scale));
-    const targetHeight = Math.max(1, Math.round(height * scale));
+    bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 480 / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement('canvas');
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    canvas.getContext('2d', { alpha: true }).drawImage(source, 0, 0, targetWidth, targetHeight);
-    const optimizedBlob = await canvasBlob(canvas, 'image/webp', 0.86);
-
-    const thumbScale = Math.min(1, 480 / Math.max(width, height));
-    const thumbCanvas = document.createElement('canvas');
-    thumbCanvas.width = Math.max(1, Math.round(width * thumbScale));
-    thumbCanvas.height = Math.max(1, Math.round(height * thumbScale));
-    thumbCanvas.getContext('2d', { alpha: true }).drawImage(source, 0, 0, thumbCanvas.width, thumbCanvas.height);
-    const thumbBlob = await canvasBlob(thumbCanvas, 'image/webp', 0.76);
-    if (typeof source.close === 'function') source.close();
-
-    const useOptimized = optimizedBlob && optimizedBlob.size < file.size;
-    const output = useOptimized
-      ? new File([optimizedBlob], file.name.replace(/\.[^.]+$/, '') + '.webp', { type: 'image/webp', lastModified: file.lastModified })
-      : file;
-    const thumbnail = thumbBlob
-      ? new File([thumbBlob], `thumb-${file.name.replace(/\.[^.]+$/, '')}.webp`, { type: 'image/webp' })
-      : new File([], 'no-thumbnail', { type: 'application/octet-stream' });
-    return { file: output, thumbnail, originalSize: file.size, optimizedSize: output.size };
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    let blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.78));
+    if (!blob || !['image/webp', 'image/jpeg', 'image/png'].includes(blob.type) || blob.size > 1536 * 1024) {
+      blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.78));
+    }
+    return blob && ['image/webp', 'image/jpeg', 'image/png'].includes(blob.type) && blob.size <= 1536 * 1024 ? blob : null;
   } catch {
-    return {
-      file,
-      thumbnail: new File([], 'no-thumbnail', { type: 'application/octet-stream' }),
-      originalSize: file.size,
-      optimizedSize: file.size,
-    };
+    return null;
+  } finally {
+    bitmap?.close?.();
   }
 }
 
-function uploadFormData(data, onProgress) {
+submissionIdInput.value = crypto.randomUUID();
+
+function uploadFormData(data) {
   return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/complaints');
-    xhr.responseType = 'json';
-    xhr.upload.addEventListener('progress', (event) => {
-      if (event.lengthComputable) onProgress(event.loaded / event.total);
+    const request = new XMLHttpRequest();
+    request.open('POST', '/api/complaints');
+    request.upload.addEventListener('progress', (event) => {
+      if (!event.lengthComputable || selectedPhotos.length === 0) return;
+      const percent = Math.round((event.loaded / event.total) * 100);
+      document.querySelector('#upload-progress-bar').style.width = `${percent}%`;
+      document.querySelector('#upload-progress-text').textContent = `Fotos werden sicher übertragen · ${percent} %`;
     });
-    xhr.addEventListener('load', () => {
-      const result = xhr.response || (() => { try { return JSON.parse(xhr.responseText); } catch { return null; } })();
-      if (xhr.status >= 200 && xhr.status < 300) resolve(result || {});
-      else reject(new Error(result?.error || 'Bitte versuche es noch einmal.'));
+    request.addEventListener('load', () => {
+      let result = {};
+      try { result = JSON.parse(request.responseText); } catch { /* handled as a generic server error below */ }
+      if (request.status < 200 || request.status >= 300) {
+        reject(new Error(result.error || 'Deine Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.'));
+        return;
+      }
+      resolve(result);
     });
-    xhr.addEventListener('error', () => reject(new Error('Netzwerkfehler. Bitte prüfe deine Verbindung.')));
-    xhr.addEventListener('abort', () => reject(new Error('Upload abgebrochen.')));
-    xhr.send(data);
+    request.addEventListener('error', () => reject(new Error('Die Verbindung wurde unterbrochen. Bitte versuche es erneut.')));
+    request.addEventListener('abort', () => reject(new Error('Die Übertragung wurde abgebrochen. Bitte versuche es erneut.')));
+    request.send(data);
   });
 }
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (!form.reportValidity()) return;
   formMessage.textContent = '';
   submitButton.disabled = true;
-  submitButton.innerHTML = 'Wird sicher gespeichert…';
-  try {
-    const prepared = [];
-    for (let index = 0; index < state.selectedFiles.length; index += 1) {
-      setProgress(5 + Math.round((index / Math.max(1, state.selectedFiles.length)) * 35), `Foto ${index + 1} von ${state.selectedFiles.length} wird optimiert…`);
-      prepared.push(await optimizePhoto(state.selectedFiles[index]));
-    }
-    const total = prepared.reduce((sum, item) => sum + item.file.size, 0);
-    if (prepared.some((item) => item.file.size > 25 * 1024 * 1024)) throw new Error('Ein Foto ist nach der Verarbeitung größer als 25 MB.');
-    if (total > 80 * 1024 * 1024) throw new Error('Die Fotos sind zusammen größer als 80 MB.');
+  submitButton.querySelector('span:first-child').textContent = 'Wird sicher übermittelt …';
+  uploadProgress.classList.toggle('hidden', selectedPhotos.length === 0);
+  document.querySelector('#upload-progress-bar').style.width = '0%';
+  document.querySelector('#upload-progress-text').textContent = 'Fotos werden sicher übertragen …';
 
-    const data = new FormData();
-    data.set('submissionId', state.submissionId);
-    data.set('title', $('#title').value);
-    data.set('details', detailsInput.value);
-    data.set('category', $('#category').value);
-    data.set('priority', $('#priority').value);
-    data.set('mood', state.selectedMood);
-    for (const item of prepared) {
-      data.append('photos', item.file, item.file.name);
-      data.append('thumbnails', item.thumbnail, item.thumbnail.name);
-    }
-    setProgress(42, 'Beschwerde wird verschlüsselt übertragen und gespeichert…');
-    await uploadFormData(data, (ratio) => setProgress(42 + Math.round(ratio * 55), `Upload läuft… ${Math.round(ratio * 100)} %`));
-    setProgress(100, 'Sicher gespeichert.');
-    form.reset();
-    resetPhotoSelection();
-    state.selectedMood = '😤';
-    state.submissionId = crypto.randomUUID();
-    detailsCount.textContent = '0';
-    updateMoodButtons();
-    show(views.success);
-    views.success.focus();
+  const data = new FormData(form);
+  data.set('mood', selectedMood);
+  data.delete('photos');
+  data.delete('thumbnails');
+  for (const [index, photo] of selectedPhotos.entries()) {
+    data.append('photos', photo);
+    const thumbnail = await createThumbnail(photo);
+    data.append('thumbnails', thumbnail || new Blob([]), `preview-${index}.bin`);
+  }
+  try {
+    await uploadFormData(data);
+
+    const summary = document.querySelector('#success-summary');
+    summary.replaceChildren();
+    const mood = document.createElement('span');
+    mood.className = 'summary-mood';
+    mood.textContent = selectedMood;
+    const label = document.createElement('span');
+    label.textContent = `${titleInput.value.trim()} · ${document.querySelector('#category').value}`;
+    summary.append(mood, label);
+    resetComposer();
+    show(successView);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (error) {
     formMessage.textContent = error.message;
   } finally {
+    uploadProgress.classList.add('hidden');
     submitButton.disabled = false;
-    submitButton.innerHTML = 'Beschwerde senden <span>→</span>';
-    setTimeout(resetProgress, 800);
+    submitButton.querySelector('span:first-child').textContent = 'Beschwerde einreichen';
   }
 });
 
-$('#new-complaint').addEventListener('click', () => {
-  show(views.complaint);
-  $('#title').focus();
+document.querySelector('#new-complaint').addEventListener('click', () => {
+  show(complaintView);
+  document.querySelector('#einreichen').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
-
-function setAdminRoute(enabled) {
-  history.replaceState(null, '', enabled ? '#admin' : location.pathname + location.search);
+document.querySelector('#success-home').addEventListener('click', setHome);
+adminLink.addEventListener('click', setAdmin);
+document.querySelector('#login-back').addEventListener('click', setHome);
+document.querySelector('#dashboard-home').addEventListener('click', setHome);
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  installAppButton.classList.remove('hidden');
+});
+installAppButton.addEventListener('click', async () => {
+  if (!installPrompt) return;
+  await installPrompt.prompt();
+  installPrompt = null;
+  installAppButton.classList.add('hidden');
+});
+window.addEventListener('appinstalled', () => installAppButton.classList.add('hidden'));
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => undefined);
 }
-
-$('#admin-link').addEventListener('click', () => {
-  setAdminRoute(true);
-  show(views.admin);
-  initializeAdmin();
-});
-$('#back-home').addEventListener('click', () => {
-  setAdminRoute(false);
-  show(views.complaint);
-});
-window.addEventListener('hashchange', () => {
-  if (location.hash === '#admin') {
-    show(views.admin);
-    initializeAdmin();
-  } else {
-    show(views.complaint);
+document.querySelectorAll('a[href="/"]').forEach((link) => link.addEventListener('click', (event) => {
+  if (link.classList.contains('brand')) {
+    event.preventDefault();
+    setHome();
   }
-});
+}));
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -301,390 +351,535 @@ async function api(path, options = {}) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    if (response.status === 401 && path !== '/api/admin/session') lockDashboard();
-    throw new Error(data.error || 'Etwas ist schiefgelaufen.');
+    const error = new Error(data.error || 'Etwas ist schiefgelaufen. Bitte versuche es erneut.');
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
 
-function lockDashboard() {
-  state.adminAuthenticated = false;
-  state.complaints = [];
-  $('#dashboard').classList.add('hidden');
-  $('#login-form').classList.remove('hidden');
-  $('#password').value = '';
+function countStatuses(items) {
+  return items.reduce((counts, item) => {
+    counts[item.status] = (counts[item.status] || 0) + 1;
+    return counts;
+  }, { new: 0, heard: 0, resolved: 0 });
 }
 
-async function initializeAdmin() {
-  if (state.adminAuthenticated) return;
+function renderStats() {
+  const counts = countStatuses(complaints);
+  const values = [
+    { value: complaints.length, label: 'Alle Nachrichten', caption: 'In eurem Postfach', tone: 'all' },
+    { value: counts.new, label: 'Neu eingegangen', caption: 'Wartet auf ein offenes Ohr', tone: 'rose' },
+    { value: counts.heard, label: 'Gehört', caption: 'Zur Kenntnis genommen', tone: 'sand' },
+    { value: counts.resolved, label: 'Erledigt', caption: 'Liebevoll geklärt', tone: 'green' },
+  ];
+  const stats = document.querySelector('#stats');
+  stats.replaceChildren();
+  values.forEach((stat) => {
+    const card = document.createElement('article');
+    card.className = 'stat-card';
+    card.dataset.tone = stat.tone;
+    const topline = document.createElement('div');
+    topline.className = 'stat-topline';
+    topline.append(document.createTextNode(stat.label));
+    const mark = document.createElement('span');
+    mark.className = 'stat-mark';
+    mark.setAttribute('aria-hidden', 'true');
+    topline.append(mark);
+    const value = document.createElement('div');
+    value.className = 'stat-value';
+    value.textContent = String(stat.value).padStart(2, '0');
+    const caption = document.createElement('div');
+    caption.className = 'stat-caption';
+    caption.textContent = stat.caption;
+    card.append(topline, value, caption);
+    stats.append(card);
+  });
+  document.querySelector('#inbox-total').textContent = String(complaints.length);
+  document.querySelectorAll('[data-count]').forEach((element) => {
+    const filter = element.dataset.count;
+    const count = filter === 'all' ? complaints.length : filter === 'trash' ? trashedComplaints.length : counts[filter] || 0;
+    element.textContent = String(count);
+  });
+}
+
+function makeElement(tag, className, text) {
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = text;
+  return element;
+}
+
+function makeCard(item, index) {
+  const isTrashed = activeFilter === 'trash';
+  const card = makeElement('article', 'complaint-card');
+  card.style.animationDelay = `${Math.min(index * 45, 240)}ms`;
+  const top = makeElement('div', 'card-top');
+  const mood = makeElement('div', 'card-mood', item.mood || '💌');
+  mood.setAttribute('aria-hidden', 'true');
+  const heading = makeElement('div', 'card-heading');
+  const meta = makeElement('div', 'card-meta');
+  meta.append(makeElement('span', '', item.category || 'Andere Angelegenheit'));
+  meta.append(makeElement('span', 'meta-separator', '·'));
+  meta.append(makeElement('time', '', formatDate(item.createdAt)));
+  const title = makeElement('h3', 'complaint-title', item.title);
+  if (item.priority && PRIORITIES[item.priority]) {
+    const priority = makeElement('span', `priority priority-${item.priority}`, PRIORITIES[item.priority]);
+    meta.append(makeElement('span', 'meta-separator', '·'), priority);
+  }
+  heading.append(meta, title);
+  top.append(mood, heading);
+
+  const details = makeElement('p', 'complaint-details', item.details);
+  const children = [top, details];
+  if (item.dueAt) children.push(makeElement('p', 'card-note due-note', `Wieder darauf schauen · ${formatDate(item.dueAt)}`));
+  if (item.responseText) children.push(makeElement('p', 'card-note response-note', `Deine Antwort · ${item.responseText}`));
+  if (item.resolutionText) children.push(makeElement('p', 'card-note resolution-note', `Gemeinsame Lösung · ${item.resolutionText}`));
+  const photos = item.photos || [];
+  if (photos.length) {
+    const photoGrid = makeElement('div', 'photo-grid');
+    photos.forEach((photo) => {
+      const link = makeElement('a', 'photo-link');
+      const path = `/api/photos/${encodeURIComponent(photo.id)}`;
+      link.href = path;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.setAttribute('aria-label', `Foto öffnen: ${photo.filename || 'Angehängtes Foto'}`);
+      const image = document.createElement('img');
+      image.src = photo.hasThumbnail ? `${path}?variant=thumb` : path;
+      image.alt = photo.filename || 'Angehängtes Foto';
+      image.loading = 'lazy';
+      image.decoding = 'async';
+      link.append(image);
+      photoGrid.append(link);
+    });
+    children.push(photoGrid);
+  }
+
+  const bottom = makeElement('div', 'card-bottom');
+  const status = makeElement('div', 'status-select');
+  status.setAttribute('aria-label', 'Beschwerdestatus');
+  const statusDot = makeElement('span', `status-dot ${item.status === 'new' ? '' : item.status}`);
+  statusDot.setAttribute('aria-hidden', 'true');
+  if (isTrashed) {
+    status.append(statusDot, makeElement('span', '', 'Im Papierkorb'));
+  } else {
+    const select = document.createElement('select');
+    select.setAttribute('aria-label', `Status für ${item.title}`);
+    STATUSES.forEach((option) => {
+      const element = document.createElement('option');
+      element.value = option.value;
+      element.textContent = option.label;
+      element.selected = option.value === item.status;
+      select.append(element);
+    });
+    select.addEventListener('change', () => updateComplaint(item.id, select.value, select));
+    status.append(statusDot, select);
+  }
+
+  const actions = makeElement('div', 'card-actions');
+  if (!isTrashed) {
+    const editButton = makeElement('button', 'card-action edit', 'Bearbeiten');
+    editButton.type = 'button';
+    editButton.addEventListener('click', () => openEditDialog(item));
+    actions.append(editButton);
+  }
+  if (isTrashed) {
+    const restoreButton = makeElement('button', 'card-action restore', 'Wiederherstellen');
+    restoreButton.type = 'button';
+    restoreButton.addEventListener('click', () => restoreComplaint(item.id));
+    actions.append(restoreButton);
+  }
+  const deleteButton = makeElement('button', 'card-action delete', isTrashed ? 'Endgültig löschen' : 'Papierkorb');
+  deleteButton.type = 'button';
+  deleteButton.setAttribute('aria-label', `${isTrashed ? 'Beschwerde endgültig löschen' : 'Beschwerde in den Papierkorb verschieben'}: ${item.title}`);
+  const trash = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  trash.setAttribute('viewBox', '0 0 24 24');
+  trash.setAttribute('aria-hidden', 'true');
+  const trashPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  trashPath.setAttribute('d', 'M4 7h16M9 7V4h6v3m3 0-.8 13H6.8L6 7m4 4v5m4-5v5');
+  trash.append(trashPath);
+  deleteButton.prepend(trash);
+  deleteButton.addEventListener('click', () => openDeleteDialog(item.id));
+  actions.append(deleteButton);
+  bottom.append(status, actions);
+  card.append(...children, bottom);
+  return card;
+}
+
+function filteredComplaints() {
+  const query = searchTerm.trim().toLocaleLowerCase('de-DE');
+  const source = activeFilter === 'trash' ? trashedComplaints : complaints;
+  return source
+    .filter((item) => activeFilter === 'all' || activeFilter === 'trash' || item.status === activeFilter)
+    .filter((item) => !activeCategory || item.category === activeCategory)
+    .filter((item) => !activePriority || (activePriority === 'none' ? !item.priority : item.priority === activePriority))
+    .filter((item) => !query || [item.title, item.details, item.category, item.priority, item.responseText, item.resolutionText].some((value) => String(value || '').toLocaleLowerCase('de-DE').includes(query)))
+    .sort((a, b) => {
+      if (sortOrder === 'priority') {
+        const rank = { urgent: 0, high: 1, normal: 2, low: 3 };
+        const difference = (rank[a.priority] ?? 4) - (rank[b.priority] ?? 4);
+        if (difference) return difference;
+      }
+      return sortOrder === 'oldest' ? new Date(a.createdAt) - new Date(b.createdAt) : new Date(b.createdAt) - new Date(a.createdAt);
+    });
+}
+
+function renderList() {
+  const list = document.querySelector('#complaint-list');
+  list.replaceChildren();
+  const visible = filteredComplaints();
+  const source = activeFilter === 'trash' ? trashedComplaints : complaints;
+  if (!source.length) {
+    const empty = makeElement('div', 'empty-state');
+    const isTrash = activeFilter === 'trash';
+    const isFiltered = (activeFilter !== 'all' && !isTrash) || Boolean(searchTerm || activeCategory || activePriority);
+    const heading = isTrash ? 'Der Papierkorb ist leer.' : isFiltered ? 'Hier ist gerade alles ruhig.' : 'Noch ist es ganz ruhig.';
+    const copy = isTrash ? 'Hier landen Beschwerden, die du aus dem Postfach nimmst.' : isFiltered ? 'Zu diesem Status gibt es im Moment keine Nachrichten.' : 'Hier erscheinen die Nachrichten, sobald etwas auf dem Herzen liegt.';
+    empty.append(makeElement('span', 'empty-icon', isTrash ? '✓' : '♡'), makeElement('h3', '', heading), makeElement('p', '', copy));
+    list.append(empty);
+    return;
+  }
+  if (!visible.length) {
+    const empty = makeElement('div', 'empty-state');
+    empty.append(makeElement('span', 'empty-icon', '⌕'), makeElement('h3', '', 'Nichts gefunden.'), makeElement('p', '', 'Ändere den Suchbegriff oder wähle einen anderen Status.'));
+    list.append(empty);
+    return;
+  }
+  visible.forEach((item, index) => list.append(makeCard(item, index)));
+}
+
+function renderCategoryFilter() {
+  const filter = document.querySelector('#category-filter');
+  const current = activeCategory;
+  const categories = [...new Set([...complaints, ...trashedComplaints].map((item) => item.category).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'de-DE'));
+  filter.replaceChildren(new Option('Alle Kategorien', ''));
+  categories.forEach((category) => filter.add(new Option(category, category)));
+  filter.value = categories.includes(current) ? current : '';
+  activeCategory = filter.value;
+}
+
+function renderDashboard() {
+  renderCategoryFilter();
+  renderStats();
+  renderList();
+}
+
+async function loadDashboard() {
   try {
     const session = await api('/api/admin/session');
-    if (session.authenticated) {
-      state.adminAuthenticated = true;
-      $('#login-form').classList.add('hidden');
-      $('#dashboard').classList.remove('hidden');
-      await Promise.all([loadDashboard(true), loadHealth(false)]);
-    } else {
-      lockDashboard();
+    if (!session.authenticated) {
+      showLogin();
+      return;
     }
-  } catch {
-    lockDashboard();
+    loginPanel.classList.add('hidden');
+    dashboard.classList.remove('hidden');
+    document.querySelector('#complaint-list').replaceChildren(makeElement('div', 'empty-state', 'Nachrichten werden geladen …'));
+    document.querySelector('#dashboard-message').textContent = '';
+    const [active, trash] = await Promise.all([getAllComplaints(false), getAllComplaints(true)]);
+    complaints = active;
+    trashedComplaints = trash;
+    renderDashboard();
+    await loadHealth(false);
+  } catch (error) {
+    if (error.status === 401) {
+      showLogin('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+    } else {
+      loginPanel.classList.add('hidden');
+      dashboard.classList.remove('hidden');
+      document.querySelector('#complaint-list').replaceChildren();
+      document.querySelector('#dashboard-message').textContent = error.message;
+    }
   }
 }
 
-$('#login-form').addEventListener('submit', async (event) => {
+function showLogin(message = '') {
+  loginPanel.classList.remove('hidden');
+  dashboard.classList.add('hidden');
+  document.querySelector('#login-message').textContent = message;
+}
+
+async function getAllComplaints(trash) {
+  const result = [];
+  let page = 1;
+  while (page <= 1000) {
+    const response = await api(`/api/complaints?page=${page}&limit=60&trash=${trash ? '1' : '0'}`);
+    result.push(...(response.complaints || []));
+    if (!response.pagination?.hasMore) break;
+    page += 1;
+  }
+  return result;
+}
+
+document.querySelector('#login-form').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const button = $('#login-form .primary');
-  const message = $('#login-message');
-  button.disabled = true;
-  message.textContent = '';
+  const passwordField = document.querySelector('#password');
+  const submit = event.currentTarget.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  document.querySelector('#login-message').textContent = '';
   try {
     await api('/api/admin/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: $('#password').value }),
+      body: JSON.stringify({ password: passwordField.value }),
     });
-    state.adminAuthenticated = true;
-    $('#password').value = '';
-    $('#login-form').classList.add('hidden');
-    $('#dashboard').classList.remove('hidden');
-    await Promise.all([loadDashboard(true), loadHealth(false)]);
+    passwordField.value = '';
+    await loadDashboard();
   } catch (error) {
-    message.textContent = error.message;
+    document.querySelector('#login-message').textContent = error.message;
+    passwordField.focus();
   } finally {
-    button.disabled = false;
+    submit.disabled = false;
   }
 });
 
-$('#admin-logout').addEventListener('click', async () => {
-  await api('/api/admin/session', { method: 'DELETE' }).catch(() => undefined);
-  lockDashboard();
-  $('#password').focus();
+document.querySelector('#refresh-dashboard').addEventListener('click', loadDashboard);
+document.querySelector('#complaint-search').addEventListener('input', (event) => {
+  searchTerm = event.currentTarget.value;
+  renderList();
 });
-
-function filterQuery(page) {
-  const params = new URLSearchParams({ page: String(page), limit: '20' });
-  const values = {
-    q: $('#filter-search').value.trim(),
-    status: $('#filter-status').value,
-    priority: $('#filter-priority').value,
-    category: $('#filter-category').value,
-    sort: $('#filter-sort').value,
-  };
-  for (const [key, value] of Object.entries(values)) if (value) params.set(key, value);
-  if ($('#filter-trash').checked) params.set('trash', '1');
-  return params.toString();
-}
-
-async function loadDashboard(reset = true) {
-  if (state.loading) return;
-  state.loading = true;
-  const list = $('#complaint-list');
-  if (reset) {
-    state.page = 1;
-    list.innerHTML = '<div class="empty">Beschwerden werden geladen…</div>';
-  }
-  try {
-    const page = reset ? 1 : state.page + 1;
-    const data = await api(`/api/complaints?${filterQuery(page)}`);
-    state.complaints = reset ? data.complaints : [...state.complaints, ...data.complaints];
-    state.stats = data.stats;
-    state.categories = data.categories;
-    state.page = page;
-    state.hasMore = data.pagination.hasMore;
-    renderStats();
-    renderCategoryFilter();
-    renderComplaints();
-    $('#load-more').classList.toggle('hidden', !state.hasMore);
-  } catch (error) {
-    list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
-  } finally {
-    state.loading = false;
-  }
-}
-
-function renderStats() {
-  const definitions = [
-    ['new', 'neu'], ['heard', 'gehört'], ['resolved', 'erledigt'], ['deleted', 'Papierkorb'], ['total', 'gesamt'],
-  ];
-  $('#stats').replaceChildren(...definitions.map(([key, label]) => {
-    const item = document.createElement('div');
-    item.className = 'stat';
-    const strong = document.createElement('strong');
-    strong.textContent = String(state.stats[key] || 0);
-    const span = document.createElement('span');
-    span.textContent = label;
-    item.append(strong, span);
-    return item;
-  }));
-}
-
-function renderCategoryFilter() {
-  const select = $('#filter-category');
-  const current = select.value;
-  select.replaceChildren(new Option('Alle', ''), ...state.categories.map((category) => new Option(category, category)));
-  if (state.categories.includes(current)) select.value = current;
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
-}
-
-function notificationLabel(notification) {
-  if (!notification) return '';
-  const labels = { sent: 'Telegram gesendet', failed: 'Telegram fehlgeschlagen', pending: 'Telegram wartet', queued: 'Telegram eingeplant', sending: 'Telegram sendet', cancelled: 'Telegram abgebrochen' };
-  return `<span class="notification-status notification-${escapeHtml(notification.status)}">${escapeHtml(labels[notification.status] || notification.status)}</span>`;
-}
-
-function makeCard(item) {
-  const card = document.createElement('article');
-  card.className = `complaint-card${item.priority === 'urgent' ? ' is-urgent' : ''}`;
-  card.dataset.id = item.id;
-  const priorities = { low: 'Entspannt', normal: 'Normal', high: 'Wichtig', urgent: 'Dringend' };
-  const priority = item.priority ? `<span class="priority priority-${escapeHtml(item.priority)}">${escapeHtml(priorities[item.priority])}</span>` : '';
-  const photos = (item.photos || []).map((photo) => {
-    const heic = /heic|heif/i.test(photo.contentType);
-    const content = heic && !photo.hasThumbnail
-      ? `<span class="heic-placeholder">HEIC-Foto<br>antippen zum Öffnen</span>`
-      : `<img src="/api/photos/${encodeURIComponent(photo.id)}?variant=thumb" alt="${escapeHtml(photo.filename || 'Angehängtes Foto')}" loading="lazy" />`;
-    return `<a class="photo-link" href="/api/photos/${encodeURIComponent(photo.id)}" target="_blank" rel="noopener">${content}</a>`;
-  }).join('');
-  const due = item.dueAt ? ` · Fällig ${formatDate(item.dueAt)}` : '';
-  const response = item.responseText ? `<div class="response-box"><strong>Antwort:</strong><br>${escapeHtml(item.responseText)}</div>` : '';
-  const resolution = item.resolutionText ? `<div class="response-box"><strong>Lösung:</strong><br>${escapeHtml(item.resolutionText)}</div>` : '';
-  const deleted = Boolean(item.deletedAt);
-  card.innerHTML = `
-    <div class="complaint-top"><div class="complaint-mood">${escapeHtml(item.mood)}</div><div><h3 class="complaint-title">${escapeHtml(item.title)}</h3><div class="meta">${escapeHtml(item.category)} · ${formatDate(item.createdAt)}${due} ${priority}${notificationLabel(item.notification)}</div></div></div>
-    <p class="complaint-details">${escapeHtml(item.details)}</p>${response}${resolution}
-    ${photos ? `<div class="photo-grid">${photos}</div>` : ''}
-    <div class="actions">
-      ${deleted ? '<button class="status-button restore-button">Wiederherstellen</button><button class="delete-button permanent-delete">Endgültig löschen</button>' : `
-        <button class="status-button ${item.status === 'new' ? 'active' : ''}" data-status="new">Neu</button>
-        <button class="status-button ${item.status === 'heard' ? 'active' : ''}" data-status="heard">Gehört</button>
-        <button class="status-button ${item.status === 'resolved' ? 'active' : ''}" data-status="resolved">Erledigt</button>
-        <button class="text-button expand-button">Mehr anzeigen</button>
-        <button class="text-button edit-button">Bearbeiten</button>
-        <button class="delete-button">Papierkorb</button>`}
-    </div>`;
-
-  card.querySelectorAll('[data-status]').forEach((button) => button.addEventListener('click', () => updateStatus(item, button.dataset.status)));
-  card.querySelector('.expand-button')?.addEventListener('click', (event) => {
-    card.classList.toggle('expanded');
-    event.currentTarget.textContent = card.classList.contains('expanded') ? 'Weniger anzeigen' : 'Mehr anzeigen';
+document.querySelector('#sort-order').addEventListener('change', (event) => {
+  sortOrder = event.currentTarget.value;
+  renderList();
+});
+document.querySelectorAll('.filter-tab').forEach((button) => button.addEventListener('click', () => {
+  activeFilter = button.dataset.filter;
+  document.querySelectorAll('.filter-tab').forEach((tab) => {
+    const selected = tab === button;
+    tab.classList.toggle('is-active', selected);
+    tab.setAttribute('aria-pressed', String(selected));
   });
-  card.querySelector('.edit-button')?.addEventListener('click', () => openEditDialog(item));
-  card.querySelector('.delete-button:not(.permanent-delete)')?.addEventListener('click', () => softDelete(item));
-  card.querySelector('.restore-button')?.addEventListener('click', () => restoreComplaint(item.id));
-  card.querySelector('.permanent-delete')?.addEventListener('click', () => permanentDelete(item));
-  return card;
-}
+  renderList();
+}));
 
-function renderComplaints() {
-  const list = $('#complaint-list');
-  list.innerHTML = '';
-  if (!state.complaints.length) {
-    list.innerHTML = `<div class="empty">${$('#filter-trash').checked ? 'Der Papierkorb ist leer.' : 'Keine passenden Beschwerden gefunden.'}</div>`;
-    return;
-  }
-  state.complaints.forEach((item) => list.append(makeCard(item)));
-}
-
-async function updateStatus(item, status) {
-  const previous = item.status;
-  if (previous === status) return;
-  try {
-    const { complaint } = await api(`/api/complaints/${encodeURIComponent(item.id)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    Object.assign(item, complaint);
-    state.stats[previous] = Math.max(0, state.stats[previous] - 1);
-    state.stats[status] += 1;
-    renderStats();
-    renderComplaints();
-    showToast('Status wurde gespeichert.');
-  } catch (error) {
-    showToast(error.message);
-  }
-}
-
-async function softDelete(item) {
-  if (!confirm('Diese Beschwerde in den Papierkorb verschieben? Sie kann 30 Tage lang wiederhergestellt werden.')) return;
-  try {
-    await api(`/api/complaints/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
-    state.complaints = state.complaints.filter((entry) => entry.id !== item.id);
-    state.stats[item.status] = Math.max(0, state.stats[item.status] - 1);
-    state.stats.deleted += 1;
-    renderStats();
-    renderComplaints();
-    state.undo = { id: item.id };
-    showToast('Beschwerde wurde in den Papierkorb verschoben.', 'Rückgängig', () => restoreComplaint(item.id, true));
-  } catch (error) {
-    showToast(error.message);
-  }
-}
-
-async function restoreComplaint(id, fromUndo = false) {
-  try {
-    await api(`/api/complaints/${encodeURIComponent(id)}/restore`, { method: 'POST' });
-    showToast('Beschwerde wurde wiederhergestellt.');
-    await loadDashboard(true);
-    if (fromUndo) state.undo = null;
-  } catch (error) {
-    showToast(error.message);
-  }
-}
-
-async function permanentDelete(item) {
-  if (!confirm('Diese Beschwerde und alle Fotos endgültig löschen? Das kann nicht rückgängig gemacht werden.')) return;
-  try {
-    await api(`/api/complaints/${encodeURIComponent(item.id)}?permanent=1`, { method: 'DELETE' });
-    state.complaints = state.complaints.filter((entry) => entry.id !== item.id);
-    state.stats.deleted = Math.max(0, state.stats.deleted - 1);
-    state.stats.total = Math.max(0, state.stats.total - 1);
-    renderStats();
-    renderComplaints();
-    showToast('Beschwerde wurde endgültig gelöscht.');
-  } catch (error) {
-    showToast(error.message);
-  }
-}
+document.querySelector('#category-filter').addEventListener('change', (event) => {
+  activeCategory = event.currentTarget.value;
+  renderList();
+});
+document.querySelector('#priority-filter').addEventListener('change', (event) => {
+  activePriority = event.currentTarget.value;
+  renderList();
+});
 
 function localDateTimeValue(value) {
   if (!value) return '';
   const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
+  if (Number.isNaN(date.valueOf())) return '';
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
 }
 
 function openEditDialog(item) {
-  $('#edit-id').value = item.id;
-  $('#edit-title').value = item.title;
-  $('#edit-details').value = item.details;
-  $('#edit-priority').value = item.priority || '';
-  $('#edit-response').value = item.responseText || '';
-  $('#edit-resolution').value = item.resolutionText || '';
-  $('#edit-due').value = localDateTimeValue(item.dueAt);
-  const categorySelect = $('#edit-category');
-  categorySelect.replaceChildren(...state.categories.map((category) => new Option(category, category)));
-  categorySelect.value = item.category;
-  $('#edit-message').textContent = '';
-  $('#edit-dialog').showModal();
-  $('#edit-title').focus();
+  document.querySelector('#edit-id').value = item.id;
+  document.querySelector('#edit-title').value = item.title || '';
+  document.querySelector('#edit-category').value = item.category || '';
+  document.querySelector('#edit-priority').value = item.priority || '';
+  document.querySelector('#edit-details').value = item.details || '';
+  document.querySelector('#edit-response').value = item.responseText || '';
+  document.querySelector('#edit-resolution').value = item.resolutionText || '';
+  document.querySelector('#edit-due').value = localDateTimeValue(item.dueAt);
+  document.querySelector('#edit-message').textContent = '';
+  editDialog.showModal();
 }
 
-$('#edit-form').addEventListener('submit', async (event) => {
+document.querySelectorAll('[data-close-edit]').forEach((button) => button.addEventListener('click', () => editDialog.close()));
+document.querySelector('#edit-form').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const id = $('#edit-id').value;
-  const button = $('#save-edit');
-  button.disabled = true;
-  $('#edit-message').textContent = '';
+  const id = document.querySelector('#edit-id').value;
+  const save = document.querySelector('#save-edit');
+  const dueValue = document.querySelector('#edit-due').value;
+  save.disabled = true;
+  document.querySelector('#edit-message').textContent = '';
   try {
-    const due = $('#edit-due').value ? new Date($('#edit-due').value).toISOString() : null;
-    const { complaint } = await api(`/api/complaints/${encodeURIComponent(id)}`, {
+    const result = await api(`/api/complaints/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: $('#edit-title').value,
-        details: $('#edit-details').value,
-        category: $('#edit-category').value,
-        priority: $('#edit-priority').value || null,
-        responseText: $('#edit-response').value,
-        resolutionText: $('#edit-resolution').value,
-        dueAt: due,
+        title: document.querySelector('#edit-title').value,
+        category: document.querySelector('#edit-category').value,
+        priority: document.querySelector('#edit-priority').value || null,
+        details: document.querySelector('#edit-details').value,
+        responseText: document.querySelector('#edit-response').value,
+        resolutionText: document.querySelector('#edit-resolution').value,
+        dueAt: dueValue ? new Date(dueValue).toISOString() : null,
       }),
     });
-    const index = state.complaints.findIndex((item) => item.id === id);
-    if (index >= 0) state.complaints[index] = complaint;
-    renderComplaints();
-    $('#edit-dialog').close();
-    showToast('Änderungen wurden gespeichert.');
+    const index = complaints.findIndex((item) => item.id === id);
+    if (index >= 0 && result.complaint) complaints[index] = result.complaint;
+    editDialog.close();
+    renderDashboard();
+    showToast('Änderungen gespeichert.');
   } catch (error) {
-    $('#edit-message').textContent = error.message;
+    if (error.status === 401) {
+      editDialog.close();
+      showLogin('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+    } else {
+      document.querySelector('#edit-message').textContent = error.message;
+    }
   } finally {
-    button.disabled = false;
+    save.disabled = false;
   }
 });
 
-let filterTimer;
-$('#filter-search').addEventListener('input', () => {
-  clearTimeout(filterTimer);
-  filterTimer = setTimeout(() => loadDashboard(true), 250);
+async function updateComplaint(id, status, select) {
+  select.disabled = true;
+  try {
+    await api(`/api/complaints/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    const complaint = complaints.find((item) => item.id === id);
+    if (complaint) complaint.status = status;
+    renderDashboard();
+    showToast('Status gespeichert. Danke, dass du zugehört hast.');
+  } catch (error) {
+    if (error.status === 401) showLogin('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+    else document.querySelector('#dashboard-message').textContent = error.message;
+    select.disabled = false;
+    const original = complaints.find((item) => item.id === id)?.status;
+    if (original) select.value = original;
+  }
+}
+
+function openDeleteDialog(id) {
+  pendingDeleteId = id;
+  const permanent = activeFilter === 'trash';
+  deleteDialog.dataset.permanent = String(permanent);
+  document.querySelector('#delete-dialog-title').textContent = permanent ? 'Endgültig löschen?' : 'In den Papierkorb?';
+  document.querySelector('#delete-dialog-copy').textContent = permanent
+    ? 'Diese Beschwerde und ihre Fotos werden dauerhaft entfernt. Dieser Schritt lässt sich nicht rückgängig machen.'
+    : 'Du kannst die Beschwerde im Papierkorb wiederherstellen. Nach 30 Tagen werden sie und ihre Fotos automatisch gelöscht.';
+  document.querySelector('#confirm-delete').textContent = permanent ? 'Endgültig löschen' : 'In Papierkorb';
+  deleteDialog.showModal();
+}
+
+document.querySelector('#cancel-delete').addEventListener('click', () => deleteDialog.close());
+document.querySelector('#confirm-delete').addEventListener('click', async () => {
+  if (!pendingDeleteId) return;
+  const id = pendingDeleteId;
+  const permanent = deleteDialog.dataset.permanent === 'true';
+  const button = document.querySelector('#confirm-delete');
+  button.disabled = true;
+  button.textContent = permanent ? 'Wird endgültig gelöscht …' : 'Wird verschoben …';
+  try {
+    const result = await api(`/api/complaints/${encodeURIComponent(id)}${permanent ? '?permanent=1' : ''}`, { method: 'DELETE' });
+    if (permanent) {
+      trashedComplaints = trashedComplaints.filter((item) => item.id !== id);
+    } else {
+      const item = complaints.find((complaint) => complaint.id === id);
+      complaints = complaints.filter((complaint) => complaint.id !== id);
+      if (item) trashedComplaints.unshift({ ...item, deletedAt: result.deletedAt || new Date().toISOString() });
+    }
+    deleteDialog.close();
+    pendingDeleteId = '';
+    renderDashboard();
+    if (permanent) showToast('Beschwerde und Fotos endgültig gelöscht.');
+    else showToast('In den Papierkorb verschoben.', 'Rückgängig', () => restoreComplaint(id));
+  } catch (error) {
+    if (error.status === 401) showLogin('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+    else document.querySelector('#dashboard-message').textContent = error.message;
+    deleteDialog.close();
+  } finally {
+    button.disabled = false;
+    button.textContent = deleteDialog.dataset.permanent === 'true' ? 'Endgültig löschen' : 'In Papierkorb';
+  }
 });
-['#filter-status', '#filter-priority', '#filter-category', '#filter-sort', '#filter-trash'].forEach((selector) => {
-  $(selector).addEventListener('change', () => loadDashboard(true));
-});
-$('#load-more').addEventListener('click', () => loadDashboard(false));
-$('#refresh-dashboard').addEventListener('click', () => Promise.all([loadDashboard(true), loadHealth(false)]));
+deleteDialog.addEventListener('close', () => { pendingDeleteId = ''; });
+
+async function restoreComplaint(id) {
+  try {
+    await api(`/api/complaints/${encodeURIComponent(id)}/restore`, { method: 'POST' });
+    const item = trashedComplaints.find((complaint) => complaint.id === id);
+    trashedComplaints = trashedComplaints.filter((complaint) => complaint.id !== id);
+    if (item) complaints.unshift({ ...item, deletedAt: null });
+    renderDashboard();
+    showToast('Beschwerde ist wieder im Postfach.');
+  } catch (error) {
+    if (error.status === 401) showLogin('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+    else document.querySelector('#dashboard-message').textContent = error.message;
+  }
+}
+
+function formatBytes(bytes) {
+  const size = Number(bytes) || 0;
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1).replace('.', ',')} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;
+}
 
 function renderHealth(data) {
-  state.health = data;
-  const badge = $('#health-badge');
-  badge.textContent = data.healthy ? 'Alles okay' : 'Aufmerksamkeit';
-  badge.className = `health-badge ${data.healthy ? 'ok' : 'warn'}`;
-  const notification = data.notifications;
-  const integrity = data.integrity;
-  $('#health-content').innerHTML = `
-    <div class="health-grid">
-      <div class="health-item"><strong>Telegram</strong><br>${data.telegramPaired ? 'Verbunden' : 'Nicht verbunden'}</div>
-      <div class="health-item"><strong>Benachrichtigungen</strong><br>${notification.sent} gesendet · ${notification.pending + notification.queued + notification.sending} offen · ${notification.failed} fehlgeschlagen</div>
-      <div class="health-item"><strong>Fotos</strong><br>${data.photos.count} · ${formatBytes(data.photos.bytes)}</div>
-      <div class="health-item"><strong>Bereinigung</strong><br>${data.cleanupJobs} offene Jobs</div>
-      ${integrity ? `<div class="health-item"><strong>Speicherintegrität</strong><br>${integrity.error || `${integrity.missingCount} fehlend · ${integrity.orphanedCount} verwaist`}</div>` : ''}
-      <div class="health-item"><strong>Letzte Telegram-Nachricht</strong><br>${formatDate(data.lastNotificationSentAt)}</div>
-    </div>
-    ${data.failedNotifications.length ? `<p><strong>Fehlgeschlagene Nachrichten:</strong></p>${data.failedNotifications.map((item) => `<p>${escapeHtml(item.title)} · ${item.attempts} Versuche <button class="pill retry-notification" data-id="${escapeHtml(item.id)}">Erneut senden</button></p>`).join('')}` : ''}`;
-  $$('.retry-notification', $('#health-content')).forEach((button) => button.addEventListener('click', async () => {
-    button.disabled = true;
-    try {
-      await api(`/api/admin/notifications/${encodeURIComponent(button.dataset.id)}/retry`, { method: 'POST' });
-      showToast('Benachrichtigung wurde erneut eingeplant.');
-      await loadHealth(false);
-    } catch (error) {
-      showToast(error.message);
-    } finally {
-      button.disabled = false;
-    }
-  }));
-  $('#repair-orphans').classList.toggle('hidden', !integrity?.orphanedCount);
+  const badge = document.querySelector('#health-badge');
+  const content = document.querySelector('#health-content');
+  const checked = Boolean(data.integrity);
+  const healthy = Boolean(data.healthy) && !data.integrity?.error;
+  badge.textContent = !healthy ? 'Bitte prüfen' : (checked ? 'Alles in Ordnung' : 'Speicher aktiv');
+  badge.className = `health-badge ${healthy ? 'ok' : 'warn'}`;
+  content.replaceChildren();
+  const stats = makeElement('div', 'health-grid');
+  const values = [
+    ['Beschwerden', String(data.complaints ?? 0)],
+    ['Fotos', `${data.photos?.count ?? 0} · ${formatBytes(data.photos?.bytes)}`],
+    ['Offene Bereinigungen', String(data.cleanupJobs ?? 0)],
+  ];
+  if (data.integrity) {
+    values.push(['Speicherintegrität', data.integrity.error || `${data.integrity.missingCount ?? 0} fehlend · ${data.integrity.orphanedCount ?? 0} nicht zugeordnet`]);
+  }
+  values.forEach(([label, value]) => {
+    const item = makeElement('div', 'health-item');
+    item.append(makeElement('span', 'health-label', label), makeElement('strong', 'health-value', value));
+    stats.append(item);
+  });
+  content.append(stats);
+  document.querySelector('#repair-orphans').classList.toggle('hidden', !data.integrity?.orphanedCount);
 }
 
 async function loadHealth(deep) {
+  const badge = document.querySelector('#health-badge');
   try {
     const data = await api(`/api/admin/health${deep ? '?deep=1' : ''}`);
     renderHealth(data);
   } catch (error) {
-    $('#health-badge').textContent = 'Fehler';
-    $('#health-badge').className = 'health-badge warn';
-    $('#health-content').textContent = error.message;
+    badge.textContent = 'Nicht erreichbar';
+    badge.className = 'health-badge warn';
+    document.querySelector('#health-content').textContent = error.message;
   }
 }
 
-$('#deep-health').addEventListener('click', async (event) => {
+document.querySelector('#deep-health').addEventListener('click', async (event) => {
   event.currentTarget.disabled = true;
-  try { await loadHealth(true); } finally { event.currentTarget.disabled = false; }
+  document.querySelector('#health-badge').textContent = 'Wird geprüft …';
+  try {
+    await loadHealth(true);
+  } finally {
+    event.currentTarget.disabled = false;
+  }
 });
-$('#repair-orphans').addEventListener('click', async () => {
-  if (!confirm('Nur nachweislich verwaiste KV-Dateien löschen? Bestehende Beschwerden werden nicht verändert.')) return;
+
+document.querySelector('#repair-orphans').addEventListener('click', async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
   try {
     const result = await api('/api/admin/health', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'repair-orphans' }),
     });
-    showToast(`${result.removed} verwaiste Dateien wurden entfernt.`);
+    showToast(`${result.removed} nicht zugeordnete Datei${result.removed === 1 ? '' : 'en'} bereinigt.`);
     await loadHealth(true);
   } catch (error) {
-    showToast(error.message);
+    if (error.status === 401) showLogin('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+    else showToast(error.message);
+  } finally {
+    button.disabled = false;
   }
 });
 
 function bytesToBase64(bytes) {
   let binary = '';
-  const chunk = 0x8000;
-  for (let index = 0; index < bytes.length; index += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + chunk));
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
   }
   return btoa(binary);
 }
@@ -723,22 +918,16 @@ async function deriveBackupKey(password, salt) {
 async function createEncryptedBackup(password) {
   const manifest = await api('/api/admin/export');
   const expectedBytes = manifest.photos.reduce((sum, photo) => sum + photo.size, 0);
-  if (expectedBytes > 300 * 1024 * 1024 && !confirm(`Das Backup enthält ungefähr ${formatBytes(expectedBytes)} an Fotos und kann viel Arbeitsspeicher benötigen. Trotzdem fortfahren?`)) return;
+  if (expectedBytes > 300 * 1024 * 1024 && !window.confirm(`Das Backup enthält ungefähr ${formatBytes(expectedBytes)} an Fotos und kann viel Arbeitsspeicher benötigen. Trotzdem fortfahren?`)) return false;
   const files = [];
   for (let index = 0; index < manifest.photos.length; index += 1) {
     const photo = manifest.photos[index];
-    $('#backup-message').textContent = `Foto ${index + 1} von ${manifest.photos.length} wird gesichert…`;
+    document.querySelector('#backup-message').textContent = `Foto ${index + 1} von ${manifest.photos.length} wird verschlüsselt vorbereitet …`;
     const response = await fetch(photo.downloadUrl, { credentials: 'same-origin' });
     if (!response.ok) throw new Error(`Foto „${photo.filename}“ konnte nicht gesichert werden.`);
     const bytes = new Uint8Array(await response.arrayBuffer());
     const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
-    files.push({
-      id: photo.id,
-      filename: photo.filename,
-      contentType: photo.contentType,
-      sha256: bytesToBase64(digest),
-      data: bytesToBase64(bytes),
-    });
+    files.push({ id: photo.id, filename: photo.filename, contentType: photo.contentType, sha256: bytesToBase64(digest), data: bytesToBase64(bytes) });
   }
   const payload = new TextEncoder().encode(JSON.stringify({ manifest, files }));
   const packed = await compressBytes(payload);
@@ -757,7 +946,8 @@ async function createEncryptedBackup(password) {
   link.href = URL.createObjectURL(blob);
   link.download = `booboo-backup-${new Date().toISOString().slice(0, 10)}.booboo`;
   link.click();
-  setTimeout(() => URL.revokeObjectURL(link.href), 15_000);
+  window.setTimeout(() => URL.revokeObjectURL(link.href), 15_000);
+  return true;
 }
 
 async function openEncryptedBackup(file, password) {
@@ -777,7 +967,9 @@ async function openEncryptedBackup(file, password) {
   }
   plain = await decompressBytes(plain, header.compressed);
   const data = JSON.parse(new TextDecoder().decode(plain));
-  if (data?.manifest?.format !== 'booboo-portal-export' || !Array.isArray(data.files)) throw new Error('Das Backup enthält keine gültigen Portaldaten.');
+  if (data?.manifest?.format !== 'booboo-portal-export' || !Array.isArray(data.manifest.complaints) || !Array.isArray(data.files)) {
+    throw new Error('Das Backup enthält keine gültigen Portaldaten.');
+  }
   for (const entry of data.files) {
     const fileBytes = base64ToBytes(entry.data);
     const digest = bytesToBase64(new Uint8Array(await crypto.subtle.digest('SHA-256', fileBytes)));
@@ -786,63 +978,109 @@ async function openEncryptedBackup(file, password) {
   return { complaints: data.manifest.complaints.length, photos: data.files.length, exportedAt: data.manifest.exportedAt };
 }
 
-$('#create-backup').addEventListener('click', () => {
-  $('#backup-password').value = '';
-  $('#backup-message').textContent = '';
-  $('#backup-dialog').showModal();
-  $('#backup-password').focus();
+document.querySelector('#create-backup').addEventListener('click', () => {
+  document.querySelector('#backup-password').value = '';
+  document.querySelector('#backup-message').textContent = '';
+  backupDialog.showModal();
+  document.querySelector('#backup-password').focus();
 });
-$('#backup-form').addEventListener('submit', async (event) => {
+document.querySelectorAll('[data-close-backup]').forEach((button) => button.addEventListener('click', () => backupDialog.close()));
+document.querySelector('#backup-form').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const password = $('#backup-password').value;
+  const password = document.querySelector('#backup-password').value;
+  const submit = document.querySelector('#backup-submit');
   if (password.length < 10) {
-    $('#backup-message').textContent = 'Bitte verwende mindestens 10 Zeichen.';
+    document.querySelector('#backup-message').textContent = 'Bitte verwende mindestens zehn Zeichen.';
     return;
   }
-  $('#backup-submit').disabled = true;
+  submit.disabled = true;
+  document.querySelector('#backup-message').textContent = 'Deine Daten werden sicher vorbereitet …';
   try {
-    await createEncryptedBackup(password);
-    $('#backup-dialog').close();
-    showToast('Das verschlüsselte Backup wurde erstellt.');
+    const completed = await createEncryptedBackup(password);
+    if (completed) {
+      backupDialog.close();
+      showToast('Das verschlüsselte Backup wurde erstellt. Bewahre Datei und Passwort getrennt auf.');
+    }
   } catch (error) {
-    $('#backup-message').textContent = error.message;
+    document.querySelector('#backup-message').textContent = error.message;
   } finally {
-    $('#backup-submit').disabled = false;
+    submit.disabled = false;
   }
 });
-$('#verify-backup').addEventListener('click', () => $('#backup-file').click());
-$('#backup-file').addEventListener('change', async () => {
-  const file = $('#backup-file').files[0];
-  $('#backup-file').value = '';
-  if (!file) return;
-  const password = prompt('Backup-Passwort eingeben:');
-  if (!password) return;
+document.querySelector('#verify-backup').addEventListener('click', () => document.querySelector('#backup-file').click());
+document.querySelector('#backup-file').addEventListener('change', (event) => {
+  selectedBackupFile = event.currentTarget.files[0] || null;
+  event.currentTarget.value = '';
+  if (!selectedBackupFile) return;
+  document.querySelector('#verify-file-name').textContent = `${selectedBackupFile.name} · ${formatBytes(selectedBackupFile.size)}`;
+  document.querySelector('#verify-password').value = '';
+  document.querySelector('#verify-message').textContent = '';
+  verifyDialog.showModal();
+  document.querySelector('#verify-password').focus();
+});
+document.querySelectorAll('[data-close-verify]').forEach((button) => button.addEventListener('click', () => verifyDialog.close()));
+document.querySelector('#verify-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!selectedBackupFile) return;
+  const submit = document.querySelector('#verify-submit');
+  submit.disabled = true;
+  document.querySelector('#verify-message').textContent = 'Verschlüsselung und Fotodateien werden geprüft …';
   try {
-    const result = await openEncryptedBackup(file, password);
-    alert(`Backup ist vollständig und lesbar.\n${result.complaints} Beschwerden\n${result.photos} Fotos\nExport: ${formatDate(result.exportedAt)}`);
+    const result = await openEncryptedBackup(selectedBackupFile, document.querySelector('#verify-password').value);
+    verifyDialog.close();
+    showToast(`Backup ist intakt · ${result.complaints} Beschwerden · ${result.photos} Fotos · ${formatDate(result.exportedAt)}`);
+    selectedBackupFile = null;
   } catch (error) {
-    alert(error.message);
+    document.querySelector('#verify-message').textContent = error.message;
+  } finally {
+    submit.disabled = false;
   }
 });
 
-function showToast(text, actionLabel = '', action = null) {
-  clearTimeout(state.toastTimer);
-  const toast = $('#toast');
-  $('#toast-text').textContent = text;
-  const button = $('#toast-action');
-  button.classList.toggle('hidden', !action);
-  button.textContent = actionLabel;
-  button.onclick = action ? async () => { await action(); hideToast(); } : null;
-  toast.classList.remove('hidden');
-  state.toastTimer = setTimeout(hideToast, action ? 10_000 : 4_000);
+function showToast(message, actionLabel = '', onAction = null) {
+  const text = document.querySelector('#toast-text');
+  const action = document.querySelector('#toast-action');
+  text.textContent = message;
+  action.textContent = actionLabel;
+  action.classList.toggle('hidden', !onAction);
+  action.onclick = onAction ? async () => {
+    action.disabled = true;
+    try { await onAction(); } finally { action.disabled = false; hideToast(); }
+  } : null;
+  toast.classList.add('is-visible');
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(hideToast, onAction ? 9000 : 3200);
 }
 
 function hideToast() {
-  $('#toast').classList.add('hidden');
-  $('#toast-action').onclick = null;
+  toast.classList.remove('is-visible');
+  document.querySelector('#toast-action').onclick = null;
 }
 
+window.addEventListener('hashchange', () => {
+  if (location.hash === '#admin') {
+    show(adminView);
+    loadDashboard();
+  } else if (!location.hash && !adminView.classList.contains('hidden')) {
+    show(complaintView);
+  }
+});
+
 if (location.hash === '#admin') {
-  show(views.admin);
-  initializeAdmin();
+  show(adminView);
+  loadDashboard();
+} else {
+  show(complaintView);
+}
+
+if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('is-visible');
+      observer.unobserve(entry.target);
+    }
+  }), { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach((element) => observer.observe(element));
+} else {
+  document.querySelectorAll('.reveal').forEach((element) => element.classList.add('is-visible'));
 }

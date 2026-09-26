@@ -2,183 +2,146 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#d93578" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8f6f3" />
+    <meta name="description" content="Ein privater, liebevoller Ort für alles, was gesagt werden muss." />
     <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
-    <meta name="description" content="Das private Booboo Beschwerde Portal." />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Booboo Portal" />
-    <title>Booboo Beschwerde Portal</title>
+    <title>Booboo — Ein Ort für deine Gefühle</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="polish.css" />
-    <link rel="stylesheet" href="polish-final.css" />
   </head>
   <body>
-    <div class="portal-tools" aria-label="Darstellung und Installation">
-      <button id="install-app" class="tool-button hidden" type="button" aria-label="Booboo Portal installieren" title="App installieren">
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2h14v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button id="theme-toggle" class="tool-button" type="button" aria-label="Dunkles Design aktivieren" title="Dunkles Design"></button>
-    </div>
+    <div class="page-grain" aria-hidden="true"></div>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Booboo Startseite">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 36 36"><path d="M18 31S5 23.5 5 14.4C5 8.6 12.7 5.3 18 12c5.3-6.7 13-3.4 13 2.4C31 23.5 18 31 18 31Z"/><path d="M12.7 17.8c1.1 1.5 2.4 2.3 4 2.3 2.5 0 4.3-1.6 6.7-4.8"/></svg></span>
+        <span class="brand-word">booboo<span>.</span></span>
+      </a>
+      <nav id="home-nav" class="main-nav" aria-label="Hauptnavigation">
+        <a href="#ablauf">So funktioniert's</a>
+        <a href="#einreichen">Einreichen</a>
+      </nav>
+      <div class="header-actions">
+        <span class="privacy-note"><span class="privacy-dot"></span> Nur für euch zwei</span>
+        <button id="install-app" class="header-button hidden" type="button">Als App speichern</button>
+        <button id="admin-link" class="header-button" type="button">Dashboard <span aria-hidden="true">↗</span></button>
+      </div>
+    </header>
 
-    <main class="shell">
-      <section id="complaint-view" class="panel complaint-panel">
-        <div class="sparkle sparkle-one" aria-hidden="true">✦</div><div class="sparkle sparkle-two" aria-hidden="true">✦</div>
-        <div class="complaint-hero">
-          <div class="brand-hearts" aria-hidden="true"><span class="heart-main">♥</span><span class="heart-small">♥</span></div>
-          <div class="eyebrow"><span></span> Wir hören offiziell zu <span></span></div>
-          <p class="kicker">Für den wichtigsten Menschen</p>
-          <h1>Booboo<br /><em>Beschwerde Portal.</em></h1>
-          <p class="intro">Ein sehr ernster Ort für absolut berechtigte Gefühle. Deine Beschwerde wird privat gespeichert und mit Liebe entgegengenommen.</p>
-        </div>
+    <main>
+      <section id="complaint-view" class="screen complaint-screen">
+        <section class="hero wrap" aria-labelledby="hero-title">
+          <div class="hero-copy reveal">
+            <p class="eyebrow"><span class="eyebrow-line"></span> Ein kleiner Raum für große Gefühle</p>
+            <h1 id="hero-title">Deine Gefühle<br />verdienen <em>Gehör.</em></h1>
+            <p class="hero-intro">Für die kleinen Dinge, die sich groß anfühlen. Für das, was du schon dreimal gesagt hast. Und für alles, was einfach raus muss.</p>
+            <div class="hero-actions">
+              <a class="button button-dark" href="#einreichen">Etwas loswerden <span aria-hidden="true">↗</span></a>
+              <a class="text-link" href="#ablauf">Wie es funktioniert <span aria-hidden="true">↓</span></a>
+            </div>
+            <div class="hero-footnote"><span class="avatar-stack" aria-hidden="true"><i>♥</i><i>♥</i></span><span>Mit Liebe gelesen. Versprochen.</span></div>
+          </div>
+          <div class="hero-art reveal" aria-label="Eine liebevoll illustrierte Notiz mit einem Herz" role="img">
+            <div class="art-wash"></div>
+            <div class="art-caption caption-top"><span class="caption-dot"></span> Ein sicherer Platz für deine Gedanken</div>
+            <div class="paper-shadow"></div>
+            <article class="letter-card">
+              <div class="letter-top"><span>AN BOOBOO</span><span class="letter-date">MIT LIEBE · IMMER</span></div>
+              <div class="letter-rule"></div>
+              <div class="letter-note">Manchmal hilft<br />es schon, wenn<br />jemand <em>wirklich</em><br /><em>zuhört.</em></div>
+              <svg class="letter-flower" viewBox="0 0 84 84" aria-hidden="true"><path d="M42 42c-14-5-18-19-10-25 7-5 14 4 10 25Zm0 0c5-14 19-18 25-10 5 7-4 14-25 10Zm0 0c14 5 18 19 10 25-7 5-14-4-10-25Zm0 0c-5 14-19 18-25 10-5-7 4-14 25-10Z"/><circle cx="42" cy="42" r="5"/></svg>
+              <div class="letter-signoff">Dein Herz darf hier laut sein.</div>
+              <div class="wax-seal" aria-hidden="true">b.</div>
+            </article>
+            <div class="art-caption caption-bottom"><span class="tiny-heart">♡</span> Privat. Persönlich. Nur für euch.</div>
+            <span class="art-spark art-spark-one" aria-hidden="true">✳</span><span class="art-spark art-spark-two" aria-hidden="true">✦</span>
+          </div>
+        </section>
 
-        <form id="complaint-form" novalidate>
-          <section class="form-section" aria-labelledby="mood-heading">
-            <h2 id="mood-heading" class="form-section-heading" data-step="01">Wie fühlst du dich?</h2>
-            <fieldset class="mood-fieldset">
-              <legend>Wie fühlst du dich?</legend>
-              <div class="mood-row">
-                <button class="mood is-selected" type="button" data-mood="😤" aria-label="Genervt" aria-pressed="true">😤</button>
-                <button class="mood" type="button" data-mood="🥺" aria-label="Traurig" aria-pressed="false">🥺</button>
-                <button class="mood" type="button" data-mood="🙄" aria-label="Unbeeindruckt" aria-pressed="false">🙄</button>
-                <button class="mood" type="button" data-mood="😡" aria-label="Wütend" aria-pressed="false">😡</button>
-                <button class="mood" type="button" data-mood="💗" aria-label="Braucht Liebe" aria-pressed="false">💗</button>
+        <section id="ablauf" class="promise-strip wrap reveal" aria-label="Unser Versprechen">
+          <div class="promise-label">Einfach, wie es sein sollte</div>
+          <div class="promise-item"><span class="promise-number">01</span><span>Alles darf gesagt werden.</span></div>
+          <div class="promise-item"><span class="promise-number">02</span><span>Nichts geht verloren.</span></div>
+          <div class="promise-item"><span class="promise-number">03</span><span>Am Ende wieder wir.</span></div>
+        </section>
+
+        <section id="einreichen" class="entry-section wrap">
+          <div class="section-intro reveal"><p class="eyebrow"><span class="eyebrow-line"></span> Dein Moment</p><h2>Erzähl es,<br /><em>wie es war.</em></h2><p>Kein Formular-Marathon. Nur ein paar Zeilen, damit ich dich besser verstehen kann.</p></div>
+          <div class="composer-card reveal">
+            <div class="composer-top"><div><span class="step-label">DEINE NACHRICHT</span><h3>Was liegt dir auf dem Herzen?</h3></div><div class="composer-progress" aria-label="Ausfüllfortschritt"><span id="progress-label">0 %</span><div class="progress-track"><span id="progress-value"></span></div></div></div>
+            <form id="complaint-form">
+              <input id="submission-id" name="submissionId" type="hidden" />
+              <fieldset class="mood-field"><legend>Wie fühlt es sich gerade an?</legend><div class="mood-row" aria-label="Gefühlsauswahl">
+                <button class="mood is-selected" type="button" data-mood="😤" aria-label="Genervt" aria-pressed="true"><span>😤</span><small>Genervt</small></button>
+                <button class="mood" type="button" data-mood="🥺" aria-label="Traurig" aria-pressed="false"><span>🥺</span><small>Traurig</small></button>
+                <button class="mood" type="button" data-mood="🙄" aria-label="Unbeeindruckt" aria-pressed="false"><span>🙄</span><small>Na ja …</small></button>
+                <button class="mood" type="button" data-mood="😡" aria-label="Wütend" aria-pressed="false"><span>😡</span><small>Wütend</small></button>
+                <button class="mood" type="button" data-mood="💗" aria-label="Braucht Liebe" aria-pressed="false"><span>💗</span><small>Viel Liebe</small></button>
+              </div></fieldset>
+
+              <div class="form-grid">
+                <label class="field field-title" for="title"><span class="field-label">Worum geht es?</span><input id="title" name="title" maxlength="90" placeholder="Zum Beispiel: Die letzte Pommes …" required /><span class="field-meta"><span>Fass es kurz zusammen</span><span id="title-count">0 / 90</span></span></label>
+                <label class="field" for="category"><span class="field-label">Das passt am besten zu</span><select id="category" name="category"><option>Essen &amp; Trinken</option><option>Zu spät kommen</option><option>Nachrichten &amp; Antworten</option><option>Aufmerksamkeit &amp; Zuneigung</option><option>Date-Night-Vergehen</option><option>Haushalt &amp; Ordnung</option><option>Vergessene Versprechen</option><option>Unnötige Diskussion</option><option>Unangebrachtes Verhalten</option><option>Geschenk- oder Blumenmangel</option><option>Andere sehr ernste Angelegenheit</option></select></label>
+                <label class="field" for="priority"><span class="field-label">Wie dringend ist es? <span class="optional">Optional</span></span><select id="priority" name="priority"><option value="">Keine Angabe</option><option value="low">Entspannt</option><option value="normal">Normal</option><option value="high">Wichtig</option><option value="urgent">Dringend</option></select></label>
+                <label class="field field-details" for="details"><span class="field-label">Erzähl mir mehr</span><textarea id="details" name="details" maxlength="2500" placeholder="Was ist passiert? Was hättest du dir gewünscht? Schreib alles auf, was wichtig ist …" required></textarea><span class="field-meta"><span>Ich lese jedes Wort.</span><span id="details-count">0 / 2.500</span></span></label>
               </div>
-            </fieldset>
-          </section>
 
-          <section class="form-section" aria-labelledby="case-heading">
-            <h2 id="case-heading" class="form-section-heading" data-step="02">Was ist passiert?</h2>
-            <div class="field-grid">
-              <label>Worum geht es?
-                <input id="title" name="title" maxlength="90" placeholder="z. B. Er hat die letzte Pommes gegessen" required />
-              </label>
-              <label>Kategorie
-                <select id="category" name="category"><option>Essen &amp; Trinken</option><option>Zu spät kommen</option><option>Nachrichten &amp; Antworten</option><option>Aufmerksamkeit &amp; Zuneigung</option><option>Date-Night-Vergehen</option><option>Haushalt &amp; Ordnung</option><option>Vergessene Versprechen</option><option>Unnötige Diskussion</option><option>Unangebrachtes Verhalten</option><option>Geschenk- oder Blumenmangel</option><option>Andere sehr ernste Angelegenheit</option></select>
-              </label>
-              <label>Priorität <span class="optional">optional</span>
-                <select id="priority" name="priority"><option value="">Keine Angabe</option><option value="low">Entspannt</option><option value="normal">Normal</option><option value="high">Wichtig</option><option value="urgent">Dringend</option></select>
-              </label>
-            </div>
-            <label class="details">Erzähl ihm alles
-              <textarea id="details" name="details" maxlength="2500" placeholder="Beschreibe den gesamten Fall. Beweise sind ausdrücklich erwünscht." required></textarea>
-              <span class="character-count"><span id="details-count">0</span>/2500</span>
-            </label>
-          </section>
+              <div class="upload-block"><div class="upload-heading"><div><span class="field-label">Möchtest du etwas zeigen?</span><span class="upload-subtitle">Fotos hinzufügen <span class="optional">Optional</span></span></div><span class="upload-limit">BIS ZU 5 FOTOS</span></div>
+                <label id="drop-zone" class="drop-zone" for="photos"><input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple /><span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg></span><span class="drop-copy"><strong>Fotos auswählen</strong><span>oder hier ablegen · JPG, PNG, WebP, HEIC</span></span><span class="drop-size">25 MB<br />je Foto</span></label>
+                <div id="photo-previews" class="photo-previews" aria-live="polite"></div>
+                <p id="photo-count" class="upload-footnote">Fotos bleiben privat im geschützten Portal.</p>
+                <div id="upload-progress" class="upload-progress hidden" role="status" aria-live="polite"><div class="progress-track"><span id="upload-progress-bar"></span></div><span id="upload-progress-text">Fotos werden sicher übertragen …</span></div>
+              </div>
 
-          <section class="form-section" aria-labelledby="proof-heading">
-            <h2 id="proof-heading" class="form-section-heading" data-step="03">Beweise hinzufügen</h2>
-            <label class="upload-field">Fotos hinzufügen <span class="optional">optional · bis zu 5</span>
-              <input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple />
-              <span id="photo-count" class="upload-hint">JPG, PNG, WebP oder HEIC · werden datensparsam optimiert</span>
-            </label>
-            <div id="photo-previews" class="photo-previews" aria-live="polite"></div>
-            <div id="upload-progress" class="progress-wrap hidden" aria-live="polite">
-              <div class="progress-track"><span id="upload-progress-bar"></span></div>
-              <p id="upload-progress-text">Fotos werden vorbereitet…</p>
-            </div>
-          </section>
-
-          <div class="form-bottom"><p class="tiny">Deine Gefühle sind zu 100 % berechtigt.</p><button id="submit-button" class="primary" type="submit">Beschwerde senden <span>→</span></button></div>
-          <p id="form-message" class="form-message" role="status"></p>
-        </form>
-        <button id="admin-link" class="quiet-link" type="button">Privates Dashboard</button>
+              <div class="composer-bottom"><p class="privacy-promise"><span aria-hidden="true">♡</span> Deine Gefühle sind sicher aufgehoben.</p><button id="submit-button" class="button button-accent" type="submit"><span>Beschwerde einreichen</span><span class="button-arrow" aria-hidden="true">↗</span></button></div>
+              <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+        </section>
+        <section class="closing-note wrap reveal"><span class="closing-ornament" aria-hidden="true">✳</span><p>Eine kleine Erinnerung:</p><h2>Wir sind <em>auf derselben</em><br />Seite.</h2><span class="closing-heart" aria-hidden="true">♥</span></section>
       </section>
 
-      <section id="success-view" class="panel success-panel hidden" aria-live="polite" tabindex="-1">
-        <div id="heart-burst" class="heart-burst" aria-hidden="true"></div>
-        <div class="success-inner">
-          <div class="success-check" aria-hidden="true">✓</div>
-          <p class="kicker">Sicher angekommen</p>
-          <h2>Ich höre dir zu,<br /><em>mein Schatz.</em></h2>
-          <p>Deine Beschwerde ist privat gespeichert. Ich kümmere mich darum. 💗</p>
-          <div class="success-meta" aria-label="Speicherstatus"><span>Sicher gespeichert</span><span>Private Benachrichtigung</span></div>
-          <button id="new-complaint" class="primary" type="button">Noch eine hinzufügen <span>+</span></button>
-        </div>
+      <section id="success-view" class="screen success-screen hidden" aria-live="polite">
+        <div class="success-orbit orbit-one" aria-hidden="true"></div><div class="success-orbit orbit-two" aria-hidden="true"></div>
+        <div class="success-content"><span class="success-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 54S9 40.6 9 24.4C9 14 22.7 8.2 32 20c9.3-11.8 23-6 23 4.4C55 40.6 32 54 32 54Z"/><path d="m24 31 5.3 5.2L41 24.5"/></svg></span><p class="eyebrow"><span class="eyebrow-line"></span> Sicher angekommen <span class="eyebrow-line"></span></p><h2>Danke, dass du<br /><em>es gesagt hast.</em></h2><p class="success-body">Deine Nachricht ist angekommen und sicher gespeichert. Sie bekommt die Aufmerksamkeit, die sie verdient.</p><div id="success-summary" class="success-summary"></div><div class="success-actions"><button id="new-complaint" class="button button-dark" type="button">Noch etwas teilen <span aria-hidden="true">↗</span></button><button id="success-home" class="text-link" type="button">Zur Startseite</button></div></div>
       </section>
 
-      <section id="admin-view" class="panel admin-panel hidden">
-        <div class="admin-heading"><div><p class="kicker">Privater Bereich</p><h2>Der <em>Beschwerde</em> Schalter</h2></div><button id="back-home" class="pill" type="button">← Zurück</button></div>
-        <form id="login-form" class="login-card"><label>Dashboard-Passwort<input id="password" type="password" autocomplete="current-password" maxlength="256" placeholder="Passwort eingeben" required /></label><button class="primary" type="submit">Dashboard öffnen <span>→</span></button><p id="login-message" class="form-message" role="status"></p></form>
-
-        <div id="dashboard" class="hidden">
-          <div class="dashboard-hero">
-            <div><p class="kicker">Private Inbox</p><h3 id="dashboard-greeting">Alles im Blick, Booboo</h3><p id="dashboard-subline">Deine private Inbox für alles, was gehört und geklärt werden soll.</p></div>
-            <div class="dashboard-topbar">
-              <button id="refresh-dashboard" class="pill" type="button">↻ Aktualisieren</button>
-              <button id="admin-logout" class="pill" type="button">Dashboard sperren</button>
-            </div>
+      <section id="admin-view" class="screen dashboard-screen hidden">
+        <div class="dashboard-wrap">
+          <div id="login-panel" class="login-panel hidden">
+            <div class="login-art" aria-hidden="true"><span class="login-heart">♡</span><span class="login-spark">✳</span></div>
+            <p class="eyebrow"><span class="eyebrow-line"></span> Privater Bereich</p><h1>Ein offenes Ohr<br /><em>fängt hier an.</em></h1><p class="login-intro">Melde dich an, um die eingegangenen Nachrichten in Ruhe zu lesen.</p>
+            <form id="login-form" class="login-form"><label class="field" for="password"><span class="field-label">Dashboard-Passwort</span><input id="password" type="password" autocomplete="current-password" placeholder="Dein Passwort" required /></label><button class="button button-dark" type="submit">Zum Dashboard <span aria-hidden="true">↗</span></button><p id="login-message" class="form-message" role="status" aria-live="polite"></p></form>
+            <button id="login-back" class="text-link" type="button"><span aria-hidden="true">←</span> Zurück zum Portal</button>
           </div>
 
-          <div id="stats" class="stats"></div>
-
-          <div class="utility-grid">
-            <details class="system-card" id="system-card">
-              <summary>System &amp; Sicherheit <span id="health-badge" class="health-badge">Prüfen…</span></summary>
-              <div id="health-content" class="health-content"></div>
-              <div class="system-actions"><button id="deep-health" class="pill" type="button">Speicher prüfen</button><button id="repair-orphans" class="pill danger-outline hidden" type="button">Verwaiste Dateien bereinigen</button></div>
-            </details>
-
-            <div class="backup-bar">
-              <div><strong>Privates Backup</strong><span>Verschlüsselt im Browser – das Passwort verlässt dein Gerät nicht.</span></div>
-              <div><button id="create-backup" class="pill" type="button">Backup erstellen</button><button id="verify-backup" class="pill" type="button">Backup prüfen</button><input id="backup-file" type="file" accept=".booboo" class="hidden" /></div>
-            </div>
+          <div id="dashboard" class="dashboard-content hidden">
+            <div class="dashboard-heading"><div><p class="eyebrow"><span class="eyebrow-line"></span> Euer privater Raum</p><h1>Mit offenem <em>Herzen.</em></h1><p class="dashboard-subtitle">Jede Nachricht verdient Zeit, Verständnis und eine liebevolle Antwort.</p></div><div class="dashboard-heading-actions"><button id="refresh-dashboard" class="icon-button" type="button" aria-label="Aktualisieren" title="Aktualisieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.8-3L3 11m0-6v6h6M4 13a8 8 0 0 0 14.8 3L21 13m0 6v-6h-6"/></svg></button><button id="dashboard-home" class="button button-light" type="button">Portal ansehen <span aria-hidden="true">↗</span></button></div></div>
+            <div id="stats" class="stats-grid" aria-label="Beschwerden im Überblick"></div>
+            <section class="storage-panel" aria-labelledby="storage-title">
+              <div class="storage-heading"><div><span class="step-label">SICHER AUFBEWAHRT</span><h2 id="storage-title">Speicher &amp; Datensicherung</h2><p>Ein Blick auf eure Fotos und die Unversehrtheit des Postfachs.</p></div><span id="health-badge" class="health-badge">Noch nicht geprüft</span></div>
+              <div id="health-content" class="health-content" aria-live="polite"><span class="health-placeholder">Der Speicherstatus wird geladen …</span></div>
+              <div class="storage-actions"><button id="deep-health" class="button button-light" type="button">Speicher prüfen</button><button id="repair-orphans" class="button button-light hidden" type="button">Nicht zugeordnete Dateien bereinigen</button><button id="create-backup" class="button button-light" type="button">Verschlüsseltes Backup erstellen</button><button id="verify-backup" class="text-link" type="button">Backup-Datei prüfen <span aria-hidden="true">↗</span></button><input id="backup-file" class="visually-hidden" type="file" accept=".booboo,application/octet-stream" /></div>
+            </section>
+            <section class="inbox-panel" aria-labelledby="inbox-title"><div class="inbox-heading"><div><span class="step-label">DAS POSTFACH</span><h2 id="inbox-title">Nachrichten <span id="inbox-total" class="inbox-total"></span></h2></div><label class="search-box" for="complaint-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input id="complaint-search" type="search" placeholder="Suchen …" autocomplete="off" /></label></div>
+              <div class="filter-row" role="tablist" aria-label="Nach Status filtern"><button class="filter-tab is-active" type="button" data-filter="all" aria-pressed="true">Alle <span data-count="all">0</span></button><button class="filter-tab" type="button" data-filter="new" aria-pressed="false">Neu <span data-count="new">0</span></button><button class="filter-tab" type="button" data-filter="heard" aria-pressed="false">Gehört <span data-count="heard">0</span></button><button class="filter-tab" type="button" data-filter="resolved" aria-pressed="false">Erledigt <span data-count="resolved">0</span></button><button class="filter-tab" type="button" data-filter="trash" aria-pressed="false">Papierkorb <span data-count="trash">0</span></button><label class="sort-control" for="sort-order"><span>Sortieren</span><select id="sort-order"><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option><option value="priority">Dringlichkeit</option></select></label></div>
+              <div class="filter-tools"><label for="category-filter">Kategorie<select id="category-filter"><option value="">Alle Kategorien</option></select></label><label for="priority-filter">Priorität<select id="priority-filter"><option value="">Alle Prioritäten</option><option value="urgent">Dringend</option><option value="high">Wichtig</option><option value="normal">Normal</option><option value="low">Entspannt</option><option value="none">Ohne Angabe</option></select></label></div>
+              <div id="dashboard-message" class="dashboard-message" role="status" aria-live="polite"></div><div id="complaint-list" class="complaint-list"></div>
+            </section>
+            <div class="dashboard-bottom"><span><span class="privacy-dot"></span> Privat und nur für euch zwei</span><form class="logout-form" action="/logout" method="post"><button class="logout-button" type="submit">Portal schließen <span aria-hidden="true">↗</span></button></form></div>
           </div>
-
-          <details id="filter-panel" class="filter-panel" open>
-            <summary><span>Beschwerden filtern</span><span class="optional">Suche, Status &amp; Sortierung</span></summary>
-            <div class="filters" aria-label="Beschwerden filtern">
-              <label class="search-field">Suche<input id="filter-search" type="search" placeholder="Titel, Text oder Kategorie" /></label>
-              <label>Status<select id="filter-status"><option value="">Alle</option><option value="new">Neu</option><option value="heard">Gehört</option><option value="resolved">Erledigt</option></select></label>
-              <label>Priorität<select id="filter-priority"><option value="">Alle</option><option value="urgent">Dringend</option><option value="high">Wichtig</option><option value="normal">Normal</option><option value="low">Entspannt</option><option value="none">Ohne</option></select></label>
-              <label>Kategorie<select id="filter-category"><option value="">Alle</option></select></label>
-              <label>Sortierung<select id="filter-sort"><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option><option value="priority">Priorität zuerst</option><option value="due">Fälligkeit zuerst</option></select></label>
-              <label class="trash-toggle"><input id="filter-trash" type="checkbox" /> Papierkorb</label>
-            </div>
-          </details>
-
-          <div id="complaint-list" class="complaint-list"></div>
-          <button id="load-more" class="pill load-more hidden" type="button">Weitere laden</button>
         </div>
       </section>
     </main>
 
-    <dialog id="edit-dialog" class="modal">
-      <form id="edit-form" method="dialog">
-        <div class="modal-heading"><h3>Beschwerde bearbeiten</h3><button class="icon-button" type="button" data-close-dialog aria-label="Dialog schließen">×</button></div>
-        <input id="edit-id" type="hidden" />
-        <div class="field-grid edit-grid">
-          <label>Titel<input id="edit-title" maxlength="90" required /></label>
-          <label>Kategorie<select id="edit-category"></select></label>
-          <label>Priorität<select id="edit-priority"><option value="">Keine</option><option value="low">Entspannt</option><option value="normal">Normal</option><option value="high">Wichtig</option><option value="urgent">Dringend</option></select></label>
-        </div>
-        <label>Beschreibung<textarea id="edit-details" maxlength="2500" required></textarea></label>
-        <label>Deine Antwort<textarea id="edit-response" maxlength="2000" placeholder="Was möchtest du dazu sagen?"></textarea></label>
-        <label>Wiedergutmachung / Lösung<textarea id="edit-resolution" maxlength="2000" placeholder="Was wurde vereinbart?"></textarea></label>
-        <label>Fällig bis <input id="edit-due" type="datetime-local" /></label>
-        <p id="edit-message" class="form-message" role="status"></p>
-        <div class="modal-actions"><button class="pill" type="button" data-close-dialog>Abbrechen</button><button id="save-edit" class="primary" type="submit">Speichern</button></div>
-      </form>
-    </dialog>
-
-    <dialog id="backup-dialog" class="modal small-modal">
-      <form id="backup-form" method="dialog">
-        <div class="modal-heading"><h3>Backup verschlüsseln</h3><button class="icon-button" type="button" data-close-dialog aria-label="Dialog schließen">×</button></div>
-        <p>Wähle ein starkes Passwort. Ohne dieses Passwort kann das Backup nicht geöffnet werden.</p>
-        <label>Backup-Passwort<input id="backup-password" type="password" minlength="10" autocomplete="new-password" required /></label>
-        <p id="backup-message" class="form-message" role="status"></p>
-        <div class="modal-actions"><button class="pill" type="button" data-close-dialog>Abbrechen</button><button id="backup-submit" class="primary" type="submit">Verschlüsseln</button></div>
-      </form>
-    </dialog>
-
-    <div id="toast" class="toast hidden" role="status"><span id="toast-text"></span><button id="toast-action" type="button" class="hidden">Rückgängig</button></div>
-    <footer><span>Gemacht mit ♥</span> und dem festen Vorsatz, es besser zu machen.<form class="logout-form" action="/logout" method="post"><button class="logout-button" type="submit">Portal schließen</button></form></footer>
-    <script type="module" src="dialogs.js"></script>
-    <script type="module" src="app.js"></script>
-    <script type="module" src="ui-polish.js"></script>
+    <footer id="site-footer" class="site-footer"><div class="footer-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 36 36"><path d="M18 31S5 23.5 5 14.4C5 8.6 12.7 5.3 18 12c5.3-6.7 13-3.4 13 2.4C31 23.5 18 31 18 31Z"/><path d="M12.7 17.8c1.1 1.5 2.4 2.3 4 2.3 2.5 0 4.3-1.6 6.7-4.8"/></svg></span><span>booboo</span></div><span class="footer-message">Ein bisschen näher, auch wenn's gerade knirscht.</span><span class="footer-copyright">MIT LIEBE GEMACHT <span>·</span> FÜR EUCH ZWEI</span></footer>
+    <div id="toast" class="toast" role="status" aria-live="polite"><span id="toast-text"></span><button id="toast-action" class="toast-action hidden" type="button">Rückgängig</button></div>
+    <dialog id="delete-dialog" class="delete-dialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button></form><span class="dialog-icon" aria-hidden="true">♡</span><p class="step-label">KLEINER HINWEIS</p><h2 id="delete-dialog-title">In den Papierkorb?</h2><p id="delete-dialog-copy">Du kannst die Beschwerde im Papierkorb wiederherstellen. Nach 30 Tagen werden sie und ihre Fotos automatisch gelöscht.</p><div class="dialog-actions"><button id="cancel-delete" class="button button-light" type="button">Doch behalten</button><button id="confirm-delete" class="button button-danger" type="button">In Papierkorb</button></div></dialog>
+    <dialog id="edit-dialog" class="edit-dialog"><button class="dialog-close" data-close-edit type="button" aria-label="Schließen">×</button><p class="eyebrow"><span class="eyebrow-line"></span> MIT OFFENEM OHR</p><h2>Nachricht <em>bearbeiten.</em></h2><form id="edit-form" class="edit-form"><input id="edit-id" type="hidden" /><label class="field" for="edit-title"><span class="field-label">Titel</span><input id="edit-title" maxlength="90" required /></label><div class="edit-grid"><label class="field" for="edit-category"><span class="field-label">Kategorie</span><select id="edit-category" required><option>Essen &amp; Trinken</option><option>Zu spät kommen</option><option>Nachrichten &amp; Antworten</option><option>Aufmerksamkeit &amp; Zuneigung</option><option>Date-Night-Vergehen</option><option>Haushalt &amp; Ordnung</option><option>Vergessene Versprechen</option><option>Unnötige Diskussion</option><option>Unangebrachtes Verhalten</option><option>Geschenk- oder Blumenmangel</option><option>Andere sehr ernste Angelegenheit</option></select></label><label class="field" for="edit-priority"><span class="field-label">Priorität <span class="optional">Optional</span></span><select id="edit-priority"><option value="">Keine Angabe</option><option value="low">Entspannt</option><option value="normal">Normal</option><option value="high">Wichtig</option><option value="urgent">Dringend</option></select></label></div><label class="field" for="edit-details"><span class="field-label">Beschreibung</span><textarea id="edit-details" maxlength="2500" required></textarea></label><label class="field" for="edit-response"><span class="field-label">Deine Antwort <span class="optional">Optional</span></span><textarea id="edit-response" maxlength="2000" placeholder="Was möchtest du ihr sagen?"></textarea></label><label class="field" for="edit-resolution"><span class="field-label">Gemeinsame Lösung <span class="optional">Optional</span></span><textarea id="edit-resolution" maxlength="2000" placeholder="Was habt ihr vereinbart?"></textarea></label><label class="field" for="edit-due"><span class="field-label">Wieder darauf schauen <span class="optional">Optional</span></span><input id="edit-due" type="datetime-local" /></label><p id="edit-message" class="form-message" role="status" aria-live="polite"></p><div class="dialog-actions"><button class="button button-light" data-close-edit type="button">Abbrechen</button><button id="save-edit" class="button button-dark" type="submit">Änderungen speichern</button></div></form></dialog>
+    <dialog id="backup-dialog" class="backup-dialog"><button class="dialog-close" data-close-backup type="button" aria-label="Schließen">×</button><p class="eyebrow"><span class="eyebrow-line"></span> EURE DATEN BLEIBEN EURE</p><h2>Ein privates <em>Backup.</em></h2><p class="backup-copy">Beschwerden und Fotos werden auf deinem Gerät verschlüsselt. Das Passwort wird nicht gespeichert und wir können die Datei nicht für dich öffnen.</p><form id="backup-form" class="backup-form"><label class="field" for="backup-password"><span class="field-label">Eigenes Backup-Passwort</span><input id="backup-password" type="password" minlength="10" autocomplete="new-password" placeholder="Mindestens 10 Zeichen" required /></label><p id="backup-message" class="form-message" role="status" aria-live="polite"></p><div class="dialog-actions"><button class="button button-light" data-close-backup type="button">Abbrechen</button><button id="backup-submit" class="button button-dark" type="submit">Verschlüsseln &amp; sichern</button></div></form></dialog>
+    <dialog id="verify-dialog" class="backup-dialog"><button class="dialog-close" data-close-verify type="button" aria-label="Schließen">×</button><p class="eyebrow"><span class="eyebrow-line"></span> SICHERHEITSCHECK</p><h2>Backup <em>überprüfen.</em></h2><p id="verify-file-name" class="backup-copy"></p><form id="verify-form" class="backup-form"><label class="field" for="verify-password"><span class="field-label">Backup-Passwort</span><input id="verify-password" type="password" autocomplete="current-password" required /></label><p id="verify-message" class="form-message" role="status" aria-live="polite"></p><div class="dialog-actions"><button class="button button-light" data-close-verify type="button">Abbrechen</button><button id="verify-submit" class="button button-dark" type="submit">Integrität prüfen</button></div></form></dialog>
+    <script src="app.js"></script>
   </body>
 </html>
