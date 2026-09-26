@@ -60,7 +60,8 @@ test('public experience has no Telegram integration', async () => {
     read('../public/app.js'),
     read('../public/styles.css'),
   ]);
-  assert.doesNotMatch(index + app + css, /telegram|t\\.me\\//i);
+  assert.doesNotMatch(index + app + css, /telegram/i);
+  assert.ok(!index.includes('t.me/') && !app.includes('t.me/') && !css.includes('t.me/'));
 });
 
 test('legacy outbound delivery code is not part of the active complaint path', async () => {
