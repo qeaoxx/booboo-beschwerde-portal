@@ -38,6 +38,8 @@ test('dashboard actions, backup, upload and login are present', async () => {
   assert.match(middleware, /Booboo — Privater Bereich/);
   assert.match(middleware, /checkLoginRateLimit/);
   assert.ok(middleware.includes('function secured(response, options)'));
+  assert.ok(middleware.includes('.note{align-self:flex-end;'));
+  assert.ok(!middleware.includes('.note{position:absolute;'));
 });
 
 test('visual system respects motion preferences and avoids third-party font dependencies', async () => {
@@ -50,6 +52,15 @@ test('visual system respects motion preferences and avoids third-party font depe
   assert.match(css, /prefers-reduced-motion/);
   assert.match(css, /@keyframes/);
   assert.match(css, /--rose/);
+});
+
+test('public experience has no Telegram integration', async () => {
+  const [index, app, css] = await Promise.all([
+    read('../public/index.html'),
+    read('../public/app.js'),
+    read('../public/styles.css'),
+  ]);
+  assert.doesNotMatch(index + app + css, /telegram|t\\.me\\//i);
 });
 
 test('legacy outbound delivery code is not part of the active complaint path', async () => {
