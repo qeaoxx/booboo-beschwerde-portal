@@ -37,7 +37,7 @@ test('dashboard actions, backup, upload and login are present', async () => {
   }
   assert.match(middleware, /Booboo — Privater Bereich/);
   assert.match(middleware, /checkLoginRateLimit/);
-  assert.match(middleware, /function secured\\(response, options\\)/);
+  assert.ok(middleware.includes('function secured(response, options)'));
 });
 
 test('visual system respects motion preferences and avoids third-party font dependencies', async () => {
