@@ -37,6 +37,10 @@ button{display:flex;width:100%;height:48px;align-items:center;justify-content:sp
 </style></head><body><main class="panel"><section class="story" aria-label="Booboo"><div class="brand"><span class="mark" aria-hidden="true">b.</span><span>booboo</span></div><div><span class="overline">Euer privater Raum</span><h1>Ein offenes Ohr<br><em>fängt hier an.</em></h1><p>Ein liebevoller Ort für alles, was gesagt werden muss — geschützt und nur für euch zwei.</p></div><div class="note" aria-hidden="true"><small>AN BOOBOO · IMMER</small><strong>Manchmal hilft,<br>wenn jemand<br><em>zuhört.</em></strong></div></section><section class="form-side"><span class="overline">Privater Bereich</span><h2>Willkommen zurück.</h2><p class="hint">Melde dich an, um eure Nachrichten in Ruhe zu lesen.</p><form method="post" action="/login"><label for="password">Portal-Passwort</label><input id="password" name="password" type="password" autocomplete="current-password" required autofocus><button type="submit"><span>Geschützten Bereich öffnen</span><span aria-hidden="true">↗</span></button>${message}${retry}</form><a class="back" href="/">← Zurück zum Portal</a><p class="foot">Privat · Persönlich · Nur für euch</p></section></main></body></html>`;
 }
 
+function secured(response, options) {
+  return applySecurityHeaders(response, options);
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
